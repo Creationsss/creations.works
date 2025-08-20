@@ -1,0 +1,27 @@
+{
+	"compilerOptions": {
+		"baseUrl": "./",
+		"paths": {
+			"#*": ["src/*"]
+		},
+		"typeRoots": ["./types", "./node_modules/@types"],
+		"lib": ["ESNext", "DOM"],
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleDetection": "force",
+		"allowJs": false,
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": false,
+		"verbatimModuleSyntax": true,
+		"noEmit": true,
+		"strict": true,
+		"skipLibCheck": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"exactOptionalPropertyTypes": true,
+		"noUncheckedIndexedAccess": true,
+		"noPropertyAccessFromIndexSignature": false
+	},
+	"include": ["src", "types"]
+}

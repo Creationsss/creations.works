@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="color-scheme" content="dark">
+	<title>creations</title>
+
+	<link rel="stylesheet" href="/public/css/style.css">
+	<link rel="stylesheet" href="/public/css/layout.css">
+	<link rel="stylesheet" href="/public/css/typography.css">
+	<link rel="stylesheet" href="/public/css/components/wakatime.css">
+
+	<script src="/public/js/wakatime.js"></script>
+</head>
+
+<body>
+	<div class="back-to-home">
+		<button class="back-button" onclick="window.location.href='/'">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+				stroke-linecap="round" stroke-linejoin="round">
+				<path d="m15 18-6-6 6-6" />
+			</svg>
+			Return home
+		</button>
+	</div>
+
+	<main class="main">
+		<section class="projects section">
+			<div class="container">
+				<h2>Featured Projects</h2>
+				<p>Here are some of the projects I've worked on that I am proud of</p>
+
+				<div class="project-grid">
+					<div class="project">
+						<h3>@atums/echo</h3>
+						<p>A lightweight Node.js package for enhanced console logging with colors, timestamps, and
+							structured output formatting.</p>
+						<div class="project-tech">
+							<span class="tech-tag typescript">TypeScript</span>
+							<span class="tech-tag npm">NPM</span>
+						</div>
+						<div class="project-links">
+							<a href="https://heliopolis.live/atums/echo" class="project-link">Source Code</a>
+							<a href="https://www.npmjs.com/package/@atums/echo" class="project-link">NPM Package</a>
+						</div>
+					</div>
+
+					<div class="project">
+						<h3>Discord Profile Page</h3>
+						<p>A cool little web app that shows your Discord profile, current activity, and more. Built with
+							Bun and features real-time presence data from Lanyard.</p>
+						<div class="project-tech">
+							<span class="tech-tag html">HTML</span>
+							<span class="tech-tag css">CSS</span>
+							<span class="tech-tag typescript">TypeScript</span>
+							<span class="tech-tag javascript">JavaScript</span>
+						</div>
+						<div class="project-links">
+							<a href="https://heliopolis.live/creations/profilePage" class="project-link">Source Code</a>
+						</div>
+					</div>
+
+					<div class="project">
+						<h3>Timezone DB</h3>
+						<p>A simple Rust-powered API service for managing and retrieving user timezones with Discord
+							OAuth authentication, PostgreSQL storage, and Redis session management.</p>
+						<div class="project-tech">
+							<span class="tech-tag rust">Rust</span>
+						</div>
+						<div class="project-links">
+							<a href="https://heliopolis.live/creations/timezoneDB" class="project-link">Source Code</a>
+						</div>
+					</div>
+				</div>
+
+				<div class="wakatime-section">
+					<h2>Coding Activity</h2>
+					<p>Here's what I've been working on recently</p>
+
+					<div id="wakatime-stats" class="wakatime-container">
+						<div class="loading-spinner">Loading coding stats...</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+
+</body>
+
+</html>

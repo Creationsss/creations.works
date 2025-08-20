@@ -1,0 +1,104 @@
+#cats-trigger {
+	cursor: default;
+	color: inherit;
+}
+
+.floating-cat {
+	position: fixed;
+	width: 60px;
+	height: 60px;
+	pointer-events: none;
+	z-index: 1000;
+	opacity: 0.9;
+	transition: opacity 0.3s ease;
+}
+
+.floating-cat.float-up {
+	animation: floatUp 3s ease-out forwards;
+}
+
+.floating-cat.float-down {
+	animation: floatDown 3s ease-out forwards;
+}
+
+.floating-cat.float-left {
+	animation: floatLeft 3s ease-out forwards;
+}
+
+.floating-cat.float-right {
+	animation: floatRight 3s ease-out forwards;
+}
+
+.floating-cat.float-diagonal {
+	animation: floatDiagonal 3s ease-out forwards;
+}
+
+@keyframes floatUp {
+	0% {
+		transform: translateY(0) rotate(0deg);
+		opacity: 0.9;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(-200px) rotate(10deg);
+		opacity: 0;
+	}
+}
+
+@keyframes floatDown {
+	0% {
+		transform: translateY(0) rotate(0deg);
+		opacity: 0.9;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(200px) rotate(-10deg);
+		opacity: 0;
+	}
+}
+
+@keyframes floatLeft {
+	0% {
+		transform: translateX(0) rotate(0deg);
+		opacity: 0.9;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateX(-200px) rotate(-15deg);
+		opacity: 0;
+	}
+}
+
+@keyframes floatRight {
+	0% {
+		transform: translateX(0) rotate(0deg);
+		opacity: 0.9;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateX(200px) rotate(15deg);
+		opacity: 0;
+	}
+}
+
+@keyframes floatDiagonal {
+	0% {
+		transform: translate(0, 0) rotate(0deg);
+		opacity: 0.9;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate(-150px, -150px) rotate(20deg);
+		opacity: 0;
+	}
+}

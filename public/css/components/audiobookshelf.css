@@ -1,0 +1,522 @@
+.container {
+	max-width: 80vw;
+}
+
+.audiobookshelf-stats {
+	opacity: 0;
+	transition: opacity 0.5s ease;
+	background-color: var(--bg-primary);
+	padding: var(--spacing-xl);
+	margin: 0;
+	max-width: none;
+	width: 100%;
+}
+
+.audiobook-overview {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--spacing-xl);
+}
+
+.audiobook-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: var(--spacing-lg);
+	margin-bottom: var(--spacing-xl);
+	max-width: none;
+}
+
+.audiobook-grid.main-stats {
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--spacing-lg);
+	max-width: none;
+}
+
+.audiobook-grid.secondary-stats {
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.audiobook-grid.daily-stats {
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.audiobook-stat {
+	text-align: center;
+	background-color: var(--bg-secondary);
+	padding: var(--spacing-md);
+	border: 1px solid var(--border-primary);
+	transition: all var(--transition-normal);
+}
+
+.secondary-stats .audiobook-stat {
+	padding: var(--spacing-sm);
+}
+
+.daily-stats .audiobook-stat {
+	padding: var(--spacing-sm);
+}
+
+.secondary-stats .stat-number,
+.daily-stats .stat-number {
+	font-size: var(--font-size-base);
+	color: var(--text-primary);
+}
+
+.secondary-stats .stat-label,
+.daily-stats .stat-label {
+	font-size: var(--font-size-xs);
+}
+
+.stat-value {
+	color: var(--accent-primary);
+	font-weight: 600;
+}
+
+.audiobook-stat:hover {
+	background-color: var(--bg-tertiary);
+}
+
+.currently-reading,
+.top-authors,
+.top-series {
+	margin-bottom: var(--spacing-xl);
+}
+
+.currently-reading h4,
+.top-authors h4,
+.top-series h4 {
+	color: var(--text-primary);
+	margin-bottom: var(--spacing-lg);
+	font-size: var(--font-size-xl);
+}
+
+.reading-list,
+.authors-list,
+.series-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+.reading-item,
+.author-item,
+.series-item {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+	padding: var(--spacing-md);
+	background-color: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	transition: all var(--transition-normal);
+}
+
+.reading-item:hover,
+.author-item:hover,
+.series-item:hover {
+	background-color: var(--bg-tertiary);
+	border-color: var(--border-secondary);
+}
+
+.book-cover {
+	width: 100px;
+	height: 150px;
+	border-radius: 4px;
+	overflow: hidden;
+	background-color: var(--bg-secondary);
+	flex-shrink: 0;
+}
+
+.book-cover img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.author-image {
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	overflow: hidden;
+	background-color: var(--bg-secondary);
+	flex-shrink: 0;
+}
+
+.author-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.series-covers {
+	width: 140px;
+	height: 100px;
+	position: relative;
+	flex-shrink: 0;
+}
+
+.series-covers img {
+	position: absolute;
+	width: 70px;
+	height: 95px;
+	object-fit: cover;
+	border-radius: 4px;
+	border: 1px solid var(--border-primary);
+}
+
+.author-info,
+.series-info {
+	flex: 1;
+}
+
+.book-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.book-info {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+}
+
+.author-name,
+.series-name {
+	display: block;
+	color: var(--text-primary);
+	font-weight: 500;
+	font-size: var(--font-size-base);
+}
+
+.author-stats,
+.series-stats {
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+.book-title {
+	color: var(--text-primary);
+	font-weight: 500;
+	font-size: var(--font-size-base);
+}
+
+.book-author {
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+.book-series {
+	color: var(--accent-primary);
+	font-size: var(--font-size-sm);
+	font-style: italic;
+}
+
+.rank {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background-color: var(--accent-primary);
+	color: var(--bg-primary);
+	font-weight: 600;
+	font-size: var(--font-size-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.author-item,
+.reading-item {
+	position: relative;
+	transition: margin-bottom 0.3s ease;
+}
+
+.author-description,
+.book-description {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: var(--bg-secondary);
+	border-top: 1px solid var(--border-secondary);
+	padding: var(--spacing-md);
+	transform: translateY(-100%);
+	transition: transform 0.3s ease;
+	max-height: 120px;
+	overflow-y: auto;
+	font-size: var(--font-size-sm);
+	line-height: 1.4;
+	color: var(--text-secondary);
+	z-index: 10;
+	opacity: 0;
+}
+
+.author-description::-webkit-scrollbar,
+.book-description::-webkit-scrollbar {
+	width: 6px;
+}
+
+.author-description::-webkit-scrollbar-track,
+.book-description::-webkit-scrollbar-track {
+	background: var(--bg-tertiary);
+}
+
+.author-description::-webkit-scrollbar-thumb,
+.book-description::-webkit-scrollbar-thumb {
+	background: var(--border-secondary);
+	border-radius: 3px;
+}
+
+.author-description::-webkit-scrollbar-thumb:hover,
+.book-description::-webkit-scrollbar-thumb:hover {
+	background: var(--text-secondary);
+}
+
+.author-item:hover,
+.reading-item:hover {
+	margin-bottom: 120px;
+}
+
+.author-item:hover .author-description,
+.reading-item:hover .book-description {
+	transform: translateY(0);
+	opacity: 1;
+}
+
+.progress-container {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.progress-bar {
+	flex: 1;
+	height: 8px;
+	background-color: var(--bg-secondary);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.progress-fill {
+	height: 100%;
+	background-color: var(--accent-primary);
+	transition: width 0.3s ease;
+}
+
+.progress-text {
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	min-width: 35px;
+	text-align: right;
+}
+
+.book-stats {
+	display: flex;
+	gap: var(--spacing-md);
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}
+
+.recent-sessions {
+	margin-bottom: var(--spacing-xl);
+}
+
+.recent-sessions h4 {
+	color: var(--text-primary);
+	font-size: var(--font-size-xl);
+	font-weight: 600;
+	margin-bottom: var(--spacing-lg);
+}
+
+.sessions-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: var(--spacing-md);
+}
+
+.session-item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-lg);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	transition: all var(--transition-normal);
+}
+
+.session-item:hover {
+	background-color: var(--bg-tertiary);
+	border-color: var(--accent-primary);
+	transform: translateY(-1px);
+}
+
+.session-info {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	margin-bottom: var(--spacing-sm);
+}
+
+.session-title {
+	color: var(--text-primary);
+	font-weight: 600;
+	font-size: var(--font-size-base);
+	margin-bottom: var(--spacing-xs);
+}
+
+.session-author {
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+.session-meta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-sm);
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	padding-top: var(--spacing-xs);
+	border-top: 1px solid var(--border-primary);
+}
+
+.session-duration {
+	color: var(--accent-primary);
+	font-weight: 500;
+}
+
+.session-device {
+	color: var(--text-muted);
+	font-size: var(--font-size-xs);
+}
+
+.big-stat {
+	text-align: center;
+	background-color: var(--bg-secondary);
+	padding: var(--spacing-lg);
+	border: 1px solid var(--border-primary);
+}
+
+.big-number {
+	display: block;
+	font-size: var(--font-size-2xl);
+	font-weight: 700;
+	color: var(--accent-primary);
+	line-height: 1;
+}
+
+.big-label {
+	display: block;
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin-top: var(--spacing-xs);
+}
+
+.completion-rate {
+	text-align: center;
+	background-color: var(--bg-secondary);
+	padding: var(--spacing-lg);
+	border: 1px solid var(--border-primary);
+}
+
+.completion-number {
+	display: block;
+	font-size: var(--font-size-xl);
+	font-weight: 700;
+	color: var(--accent-secondary);
+	line-height: 1;
+}
+
+.completion-label {
+	display: block;
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin-top: var(--spacing-xs);
+}
+
+.secondary-stats,
+.daily-stats {
+	margin-top: var(--spacing-lg);
+}
+
+.user-profile-section {
+	margin-bottom: var(--spacing-xl);
+}
+
+.profile-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--spacing-md);
+}
+
+.profile-stat {
+	display: flex;
+	justify-content: space-between;
+	padding: var(--spacing-sm);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+}
+
+.profile-label {
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+.profile-value {
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+}
+
+@media (max-width: 768px) {
+	.audiobook-overview {
+		flex-direction: column;
+		gap: var(--spacing-lg);
+		text-align: center;
+	}
+
+	.audiobook-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--spacing-md);
+	}
+
+	.reading-item,
+	.author-item,
+	.series-item {
+		flex-direction: column;
+		text-align: center;
+		gap: var(--spacing-sm);
+	}
+
+	.author-info,
+	.series-info {
+		text-align: center;
+	}
+
+	.rank {
+		margin-left: 0;
+	}
+
+	.session-item {
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		text-align: center;
+	}
+
+	.session-meta {
+		justify-content: center;
+	}
+
+	.book-stats {
+		justify-content: center;
+	}
+
+	.series-covers {
+		width: 100px;
+		margin: 0 auto;
+	}
+}

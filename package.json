@@ -1,0 +1,19 @@
+{
+	"name": "bun_http_template",
+	"module": "src/index.ts",
+	"type": "module",
+	"scripts": {
+		"start": "bun run src/index.ts",
+		"dev": "bun run --hot src/index.ts --dev",
+		"lint": "bunx biome check",
+		"lint:fix": "bunx biome check --fix",
+		"cleanup": "rm -rf logs node_modules bun.lock"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@biomejs/biome": "latest"
+	},
+	"dependencies": {
+		"@atums/echo": "latest"
+	}
+}

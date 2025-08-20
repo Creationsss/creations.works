@@ -1,0 +1,659 @@
+let audiobookshelfData = null;
+let audiobookshelfError = null;
+
+fetch("/api/audiobookshelf/stats")
+	.then((response) => {
+		if (!response.ok) throw new Error("Failed to fetch stats");
+		return response.json();
+	})
+	.then((data) => {
+		if (data.error) {
+			audiobookshelfError = "Audiobook stats unavailable";
+			return;
+		}
+		audiobookshelfData = data;
+	})
+	.catch(() => {
+		audiobookshelfError = "Failed to load audiobook stats";
+	});
+
+function updateAudiobookshelfStats() {
+	const statsContainer = document.getElementById("audiobookshelf-stats");
+
+	if (audiobookshelfError) {
+		statsContainer.style.display = "none";
+		return;
+	}
+
+	if (audiobookshelfData) {
+		statsContainer.style.display = "block";
+		renderAudiobookshelfStats(audiobookshelfData);
+		setTimeout(() => {
+			statsContainer.style.opacity = "1";
+		}, 10);
+		return;
+	}
+
+	setTimeout(updateAudiobookshelfStats, 50);
+}
+
+function renderAudiobookshelfStats(data) {
+	const container = document.getElementById("audiobookshelf-stats");
+
+	const totalHours = Math.round(data.totalTime / 3600);
+	const totalDays = Math.round(data.totalTime / 86400);
+	const totalBooks = data.totalBooks || 0;
+	const mediaProgress = data.mediaProgress || [];
+	const books = Object.values(data.items || {});
+	const booksFinished = mediaProgress.filter(
+		(progress) => progress.isFinished,
+	).length;
+	const booksInProgress = mediaProgress.filter(
+		(progress) => !progress.isFinished && progress.progress > 0,
+	).length;
+	const fallbackFinished = books.filter((book) => {
+		if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
+			const progress = (book.timeListening / book.mediaMetadata.duration) * 100;
+			return progress >= 95;
+		}
+		const hoursListened = book.timeListening / 3600;
+		return hoursListened >= 20;
+	}).length;
+
+	const fallbackInProgress = books.filter((book) => {
+		if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
+			const progress = (book.timeListening / book.mediaMetadata.duration) * 100;
+			return progress > 0 && progress < 95;
+		}
+		const hoursListened = book.timeListening / 3600;
+		return hoursListened > 0 && hoursListened < 20;
+	}).length;
+	const finalBooksFinished =
+		mediaProgress.length > 0 ? booksFinished : fallbackFinished;
+	const finalBooksInProgress =
+		mediaProgress.length > 0 ? booksInProgress : fallbackInProgress;
+	const booksStarted = finalBooksFinished + finalBooksInProgress;
+	const completionRate =
+		booksStarted > 0
+			? Math.round((finalBooksFinished / booksStarted) * 100)
+			: 0;
+	const uniqueAuthors = new Set();
+	const uniqueSeries = new Set();
+	const uniqueGenres = new Set();
+	const publishers = new Set();
+	const authorStats = {};
+	const seriesStats = {};
+
+	const dailyStats = {};
+	const sessionsForDailyStats = data.recentSessions || [];
+
+	sessionsForDailyStats.forEach((session) => {
+		const date = session.date;
+		if (!dailyStats[date]) {
+			dailyStats[date] = 0;
+		}
+		dailyStats[date] += session.timeListening || 0;
+	});
+
+	const dailyTimes = Object.values(dailyStats);
+	const bestDaySeconds = dailyTimes.length > 0 ? Math.max(...dailyTimes) : 0;
+	const bestDayHours = Math.floor(bestDaySeconds / 3600);
+	const bestDayMinutes = Math.floor((bestDaySeconds % 3600) / 60);
+	const bestDayTime =
+		bestDayMinutes > 0
+			? `${bestDayHours}h ${bestDayMinutes}m`
+			: `${bestDayHours}h`;
+
+	const todaySeconds = data.today || 0;
+	const todayHours = Math.floor(todaySeconds / 3600);
+	const todayMinutes = Math.floor((todaySeconds % 3600) / 60);
+	const todayTime =
+		todayMinutes > 0 ? `${todayHours}h ${todayMinutes}m` : `${todayHours}h`;
+
+	const accountCreated = data.user?.createdAt
+		? new Date(data.user.createdAt)
+		: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+	const daysSinceCreated = Math.max(
+		1,
+		Math.floor((Date.now() - accountCreated.getTime()) / (24 * 60 * 60 * 1000)),
+	);
+	const avgDaySeconds = data.totalTime / daysSinceCreated;
+	const avgDayHours = Math.floor(avgDaySeconds / 3600);
+	const avgDayMinutes = Math.floor((avgDaySeconds % 3600) / 60);
+	const avgDayTime =
+		avgDayMinutes > 0 ? `${avgDayHours}h ${avgDayMinutes}m` : `${avgDayHours}h`;
+
+	books.forEach((book) => {
+		if (book.mediaMetadata?.authors) {
+			book.mediaMetadata.authors.forEach((author) => {
+				uniqueAuthors.add(author.name);
+				if (!authorStats[author.name]) {
+					authorStats[author.name] = {
+						time: 0,
+						books: 0,
+						id: author.id,
+						imageUrl: author.id
+							? `/api/audiobookshelf/author-image/${author.id}`
+							: null,
+					};
+				}
+				authorStats[author.name].time += book.timeListening;
+				authorStats[author.name].books += 1;
+			});
+		}
+		if (book.mediaMetadata?.series) {
+			book.mediaMetadata.series.forEach((series) => {
+				uniqueSeries.add(series.name);
+				if (!seriesStats[series.name]) {
+					seriesStats[series.name] = {
+						time: 0,
+						books: 0,
+						id: series.id,
+						coverUrls: [],
+					};
+				}
+				seriesStats[series.name].time += book.timeListening;
+				seriesStats[series.name].books += 1;
+				if (
+					book.coverUrl &&
+					!seriesStats[series.name].coverUrls.includes(book.coverUrl)
+				) {
+					seriesStats[series.name].coverUrls.push(book.coverUrl);
+				}
+			});
+		}
+		if (book.mediaMetadata?.genres) {
+			for (const genre of book.mediaMetadata.genres) {
+				uniqueGenres.add(genre);
+			}
+		}
+		if (book.mediaMetadata?.publisher) {
+			publishers.add(book.mediaMetadata.publisher);
+		}
+	});
+
+	const topAuthors = Object.entries(authorStats)
+		.sort((a, b) => b[1].time - a[1].time)
+		.slice(0, 5)
+		.map(([name, stats]) => ({
+			name,
+			hours: Math.round(stats.time / 3600),
+			books: stats.books,
+			imageUrl: stats.imageUrl,
+			id: stats.id,
+		}));
+
+	const topSeries = Object.entries(seriesStats)
+		.sort((a, b) => b[1].time - a[1].time)
+		.slice(0, 5)
+		.map(([name, stats]) => ({
+			name,
+			hours: Math.round(stats.time / 3600),
+			books: stats.books,
+			coverUrls: stats.coverUrls.slice(0, 4),
+		}));
+
+	let currentlyReading = [];
+
+	if (mediaProgress.length > 0) {
+		const inProgressItems = mediaProgress
+			.filter((progress) => !progress.isFinished && progress.progress > 0)
+			.sort((a, b) => b.lastUpdate - a.lastUpdate)
+			.slice(0, 5);
+		const seenTitles = new Set();
+
+		currentlyReading = inProgressItems
+			.map((progressItem) => {
+				const book = data.items[progressItem.libraryItemId];
+				if (!book) return null;
+
+				const title = book.mediaMetadata?.title || "Unknown Title";
+				if (seenTitles.has(title)) return null;
+				seenTitles.add(title);
+
+				const progressPercent = Math.round(progressItem.progress * 100);
+				const remainingSeconds = Math.max(
+					0,
+					progressItem.duration - progressItem.currentTime,
+				);
+				const remainingHours = Math.floor(remainingSeconds / 3600);
+				const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
+				const timeRemaining =
+					progressItem.duration > 0
+						? remainingMinutes > 0
+							? `${remainingHours}h ${remainingMinutes}m`
+							: `${remainingHours}h`
+						: "0h";
+
+				return {
+					title,
+					author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
+					series: book.mediaMetadata?.series?.[0]?.name || null,
+					progress: Math.min(Math.max(progressPercent, 0), 100),
+					timeRemaining,
+					totalHours: Math.round(progressItem.currentTime / 3600),
+					coverUrl: book.coverUrl,
+					description: book.mediaMetadata?.description || null,
+					id: progressItem.libraryItemId,
+				};
+			})
+			.filter((item) => item !== null);
+
+		currentlyReadingBooks = currentlyReading;
+	} else {
+		const seenTitles = new Set();
+		currentlyReading = books
+			.filter((book) => {
+				if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
+					const progress =
+						(book.timeListening / book.mediaMetadata.duration) * 100;
+					return progress > 0 && progress < 95;
+				}
+				const hoursListened = book.timeListening / 3600;
+				return hoursListened > 0 && hoursListened < 20;
+			})
+			.sort((a, b) => b.timeListening - a.timeListening)
+			.map((book) => {
+				const title = book.mediaMetadata?.title || "Unknown Title";
+				if (seenTitles.has(title)) return null;
+				seenTitles.add(title);
+
+				let progress = 0;
+				let timeRemaining = "0h";
+
+				if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
+					progress = Math.round(
+						(book.timeListening / book.mediaMetadata.duration) * 100,
+					);
+					const remainingSeconds = Math.max(
+						0,
+						book.mediaMetadata.duration - book.timeListening,
+					);
+					const remainingHours = Math.floor(remainingSeconds / 3600);
+					const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
+					timeRemaining =
+						remainingMinutes > 0
+							? `${remainingHours}h ${remainingMinutes}m`
+							: `${remainingHours}h`;
+				} else {
+					const estimatedDuration = 12 * 3600;
+					progress = Math.round((book.timeListening / estimatedDuration) * 100);
+					const remainingSeconds = Math.max(
+						0,
+						estimatedDuration - book.timeListening,
+					);
+					const remainingHours = Math.floor(remainingSeconds / 3600);
+					const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
+					timeRemaining =
+						remainingMinutes > 0
+							? `${remainingHours}h ${remainingMinutes}m`
+							: `${remainingHours}h`;
+				}
+
+				return {
+					title,
+					author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
+					series: book.mediaMetadata?.series?.[0]?.name || null,
+					progress: Math.min(Math.max(progress, 0), 100),
+					timeRemaining,
+					totalHours: Math.round(book.timeListening / 3600),
+					coverUrl: book.coverUrl,
+					description: book.mediaMetadata?.description || null,
+					id: book.id,
+				};
+			})
+			.filter((item) => item !== null)
+			.slice(0, 5);
+
+		currentlyReadingBooks = currentlyReading;
+	}
+
+	const recentSessions = (data.recentSessions || [])
+		.filter((session) => {
+			const totalMinutes = Math.round(session.timeListening / 60);
+			return totalMinutes > 0;
+		})
+		.slice(0, 8)
+		.map((session) => {
+			const totalMinutes = Math.round(session.timeListening / 60);
+			const hours = Math.floor(totalMinutes / 60);
+			const minutes = totalMinutes % 60;
+
+			let durationText;
+			if (hours > 0) {
+				durationText = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+			} else {
+				durationText = `${minutes}m`;
+			}
+
+			return {
+				title:
+					session.displayTitle || session.mediaMetadata?.title || "Unknown",
+				author:
+					session.displayAuthor ||
+					session.mediaMetadata?.authors?.[0]?.name ||
+					"Unknown",
+				duration: durationText,
+				date: new Date(session.date).toLocaleDateString(),
+				device:
+					session.deviceInfo?.deviceName ||
+					session.deviceInfo?.clientName ||
+					"Unknown Device",
+			};
+		});
+
+	const statsHTML = `
+		<div class="audiobook-grid main-stats">
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${totalDays}</span></span>
+				<span class="stat-label">Days of Listening</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${completionRate}%</span></span>
+				<span class="stat-label">Completion Rate</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${totalHours}h</span></span>
+				<span class="stat-label">Total Hours</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${finalBooksFinished}</span></span>
+				<span class="stat-label">Books Finished</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${finalBooksInProgress}</span></span>
+				<span class="stat-label">In Progress</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${totalBooks}</span></span>
+				<span class="stat-label">Total Books</span>
+			</div>
+		</div>
+
+		${
+			currentlyReading.length
+				? `
+		<div class="currently-reading">
+			<h4>Currently Reading</h4>
+			<div class="reading-list">
+				${currentlyReading
+					.map(
+						(book) => `
+					<div class="reading-item" data-book-id="${book.id || ""}" onmouseenter="loadBookDescription(this)" onmouseleave="clearBookTimeout()">
+						${
+							book.coverUrl
+								? `<div class="book-cover">
+							<img src="${book.coverUrl}" alt="${book.title} cover" loading="lazy" onerror="this.style.display='none'">
+						</div>`
+								: ""
+						}
+						<div class="book-content">
+							<div class="book-info">
+								<span class="book-title">${book.title}</span>
+								<span class="book-author">by ${book.author}</span>
+								${book.series ? `<span class="book-series">${book.series}</span>` : ""}
+							</div>
+							<div class="progress-container">
+								<div class="progress-bar">
+									<div class="progress-fill" style="width: ${book.progress}%"></div>
+								</div>
+								<span class="progress-text"><span class="stat-value">${book.progress}%</span></span>
+							</div>
+							<div class="book-stats">
+								<span class="listened-time"><span class="stat-value">${book.totalHours}h</span> listened</span>
+								${
+									book.timeRemaining !== "0h"
+										? `<span class="time-remaining"><span class="stat-value">${book.timeRemaining}</span> left</span>`
+										: ""
+								}
+							</div>
+						</div>
+						<div class="book-description" style="display: none;"></div>
+					</div>
+				`,
+					)
+					.join("")}
+			</div>
+		</div>
+		`
+				: ""
+		}
+
+		<div class="audiobook-grid secondary-stats">
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${uniqueAuthors.size}</span></span>
+				<span class="stat-label">Authors</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${uniqueSeries.size}</span></span>
+				<span class="stat-label">Series</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${uniqueGenres.size}</span></span>
+				<span class="stat-label">Genres</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${publishers.size}</span></span>
+				<span class="stat-label">Publishers</span>
+			</div>
+		</div>
+
+		<div class="audiobook-grid daily-stats">
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${todayTime}</span></span>
+				<span class="stat-label">Today</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${bestDayTime}</span></span>
+				<span class="stat-label">Best Day</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${avgDayTime}</span></span>
+				<span class="stat-label">Avg Per Day</span>
+			</div>
+			<div class="audiobook-stat">
+				<span class="stat-number"><span class="stat-value">${Math.round(finalBooksFinished / Math.max(daysSinceCreated / 30, 1))}</span></span>
+				<span class="stat-label">Books/Month</span>
+			</div>
+		</div>
+
+		${
+			data.user
+				? `
+		<div class="user-profile-section">
+			<h4>Profile Information</h4>
+			<div class="profile-stats">
+				<div class="profile-stat">
+					<span class="profile-label">Member since:</span>
+					<span class="profile-value">${new Date(data.user.createdAt).toLocaleDateString()}</span>
+				</div>
+				<div class="profile-stat">
+					<span class="profile-label">Last active:</span>
+					<span class="profile-value">${new Date(data.user.lastSeen).toLocaleDateString()}</span>
+				</div>
+			</div>
+		</div>
+		`
+				: ""
+		}
+
+		${
+			topAuthors.length
+				? `
+		<div class="top-authors">
+			<h4>Top Authors by Listening Time</h4>
+			<div class="authors-list">
+				${topAuthors
+					.map(
+						(author, index) => `
+					<div class="author-item" data-author-id="${author.id || ""}" onmouseenter="loadAuthorDescription(this)" onmouseleave="clearAuthorTimeout()">
+						${
+							author.imageUrl
+								? `<div class="author-image">
+							<img src="${author.imageUrl}" alt="${author.name}" loading="lazy" onerror="this.style.display='none'">
+						</div>`
+								: ""
+						}
+						<div class="author-info">
+							<span class="author-name">${author.name}</span>
+							<span class="author-stats"><span class="stat-value">${author.hours}h</span> • <span class="stat-value">${author.books}</span> books</span>
+						</div>
+						<span class="rank">#${index + 1}</span>
+						<div class="author-description" style="display: none;"></div>
+					</div>
+				`,
+					)
+					.join("")}
+			</div>
+		</div>
+		`
+				: ""
+		}
+
+		${
+			topSeries.length
+				? `
+		<div class="top-series">
+			<h4>Top Series by Listening Time</h4>
+			<div class="series-list">
+				${topSeries
+					.map(
+						(series, index) => `
+					<div class="series-item">
+						${
+							series.coverUrls.length > 0
+								? `<div class="series-covers">
+							${series.coverUrls
+								.map((coverUrl, coverIndex) => {
+									const spacing =
+										series.coverUrls.length === 1
+											? 0
+											: series.coverUrls.length === 2
+												? coverIndex * 25
+												: series.coverUrls.length === 3
+													? coverIndex * 20
+													: coverIndex * 15;
+									return `<img src="${coverUrl}" alt="${series.name} book ${coverIndex + 1}" loading="lazy" onerror="this.style.display='none'" style="left: ${spacing}px; z-index: ${series.coverUrls.length - coverIndex};">`;
+								})
+								.join("")}
+						</div>`
+								: ""
+						}
+						<div class="series-info">
+							<span class="series-name">${series.name}</span>
+							<span class="series-stats"><span class="stat-value">${series.hours}h</span> • <span class="stat-value">${series.books}</span> books</span>
+						</div>
+						<span class="rank">#${index + 1}</span>
+					</div>
+				`,
+					)
+					.join("")}
+			</div>
+		</div>
+		`
+				: ""
+		}
+
+		${
+			recentSessions.length
+				? `
+		<div class="recent-sessions">
+			<h4>Recent Listening Sessions</h4>
+			<div class="sessions-list">
+				${recentSessions
+					.map(
+						(session) => `
+					<div class="session-item">
+						<div class="session-info">
+							<span class="session-title">${session.title}</span>
+							<span class="session-author">${session.author}</span>
+						</div>
+						<div class="session-meta">
+							<span class="session-duration">${session.duration}</span>
+							<span class="session-date">${session.date}</span>
+							<span class="session-device">${session.device}</span>
+						</div>
+					</div>
+				`,
+					)
+					.join("")}
+			</div>
+		</div>
+		`
+				: ""
+		}
+	`;
+
+	container.innerHTML = statsHTML;
+}
+
+let authorDescriptionTimeout;
+const authorDescriptionCache = {};
+let bookDescriptionTimeout;
+let currentlyReadingBooks = [];
+
+// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
+function loadAuthorDescription(authorElement) {
+	const authorId = authorElement.dataset.authorId;
+	if (!authorId) return;
+
+	clearTimeout(authorDescriptionTimeout);
+
+	authorDescriptionTimeout = setTimeout(async () => {
+		const descriptionDiv = authorElement.querySelector(".author-description");
+
+		if (authorDescriptionCache[authorId]) {
+			if (authorDescriptionCache[authorId].description) {
+				descriptionDiv.innerHTML = authorDescriptionCache[authorId].description;
+				descriptionDiv.style.display = "block";
+			}
+			return;
+		}
+
+		try {
+			const response = await fetch(
+				`/api/audiobookshelf/author-details/${authorId}`,
+			);
+			if (response.ok) {
+				const data = await response.json();
+				authorDescriptionCache[authorId] = data;
+
+				if (data.description) {
+					descriptionDiv.innerHTML = data.description;
+					descriptionDiv.style.display = "block";
+				}
+			}
+		} catch {}
+	}, 500);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
+function clearAuthorTimeout() {
+	clearTimeout(authorDescriptionTimeout);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
+function loadBookDescription(bookElement) {
+	const bookId = bookElement.dataset.bookId;
+	if (!bookId) return;
+
+	clearTimeout(bookDescriptionTimeout);
+
+	bookDescriptionTimeout = setTimeout(() => {
+		const descriptionDiv = bookElement.querySelector(".book-description");
+
+		const bookData = currentlyReadingBooks.find((book) => book.id === bookId);
+
+		if (bookData?.description) {
+			descriptionDiv.innerHTML = bookData.description;
+			descriptionDiv.style.display = "block";
+		}
+	}, 500);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
+function clearBookTimeout() {
+	clearTimeout(bookDescriptionTimeout);
+}
+
+document.addEventListener("DOMContentLoaded", updateAudiobookshelfStats);
