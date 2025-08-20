@@ -7,10 +7,14 @@ type Environment = {
 type Wakapi = {
 	url: string | false;
 	key: string | null;
-	username: string | null;
 };
 
 type Audiobookshelf = {
 	url: string | false;
 	token: string | null;
+};
+
+type TimezoneDB = {
+	url: string | false;
+	id: string | null;
 };

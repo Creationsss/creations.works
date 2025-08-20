@@ -11,7 +11,6 @@ const environment: Environment = {
 const wakapi: Wakapi = {
 	url: process.env.WAKAPI || false,
 	key: process.env.WAKAPI_KEY || null,
-	username: process.env.WAKAPI_USERNAME || null,
 };
 
 const audiobookshelf: Audiobookshelf = {
@@ -19,16 +18,26 @@ const audiobookshelf: Audiobookshelf = {
 	token: process.env.AUDIOBOOKSHELF_TOKEN || null,
 };
 
+const timezoneDB: TimezoneDB = {
+	url: process.env.TIMEZONEDB_URL || false,
+	id: process.env.TIMEZONEDB_ID || null,
+};
+
 function verifyRequiredVariables(): void {
 	let hasError = false;
 
 	const joined = [...requiredVariables];
+
 	if (wakapi.url) {
 		joined.push("WAKAPI_KEY");
-		joined.push("WAKAPI_USERNAME");
 	}
+
 	if (audiobookshelf.url) {
 		joined.push("AUDIOBOOKSHELF_TOKEN");
+	}
+
+	if (timezoneDB.url) {
+		joined.push("TIMEZONEDB_ID");
 	}
 
 	for (const key of joined) {
@@ -44,4 +53,10 @@ function verifyRequiredVariables(): void {
 	}
 }
 
-export { environment, wakapi, audiobookshelf, verifyRequiredVariables };
+export {
+	environment,
+	wakapi,
+	audiobookshelf,
+	timezoneDB,
+	verifyRequiredVariables,
+};

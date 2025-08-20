@@ -243,15 +243,17 @@
 	background: var(--bg-secondary);
 	border-top: 1px solid var(--border-secondary);
 	padding: var(--spacing-md);
-	transform: translateY(-100%);
-	transition: transform 0.3s ease;
-	max-height: 120px;
-	overflow-y: auto;
+	max-height: 0;
+	overflow: hidden;
+	transition:
+		max-height 0.3s ease,
+		opacity 0.3s ease;
 	font-size: var(--font-size-sm);
 	line-height: 1.4;
 	color: var(--text-secondary);
 	z-index: 10;
 	opacity: 0;
+	visibility: hidden;
 }
 
 .author-description::-webkit-scrollbar,
@@ -282,8 +284,10 @@
 
 .author-item:hover .author-description,
 .reading-item:hover .book-description {
-	transform: translateY(0);
+	max-height: 120px;
 	opacity: 1;
+	visibility: visible;
+	overflow-y: auto;
 }
 
 .progress-container {
@@ -470,6 +474,26 @@
 	color: var(--text-primary);
 	font-size: var(--font-size-sm);
 	font-weight: 500;
+}
+
+.error-message {
+	text-align: center;
+	padding: var(--spacing-xxl);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	margin: var(--spacing-xl) 0;
+}
+
+.error-message h3 {
+	color: var(--text-primary);
+	margin-bottom: var(--spacing-md);
+	font-size: var(--font-size-xl);
+}
+
+.error-message p {
+	color: var(--text-secondary);
+	font-size: var(--font-size-base);
+	margin: 0;
 }
 
 @media (max-width: 768px) {

@@ -3,15 +3,33 @@ let wakaTimeError = null;
 
 fetch("/api/wakatime")
 	.then((response) => {
-		if (!response.ok) throw new Error("Failed to fetch stats");
+		if (!response.ok) {
+			if (response.status === 503) {
+				const wakatimeSection = document.querySelector(".wakatime-section");
+				if (wakatimeSection) {
+					wakatimeSection.style.display = "none";
+				}
+				return;
+			}
+			throw new Error("Failed to fetch stats");
+		}
 		return response.json();
 	})
 	.then((data) => {
-		if (data.error) {
+		if (data?.error) {
+			if (data.error === "Wakapi stats unavailable") {
+				const wakatimeSection = document.querySelector(".wakatime-section");
+				if (wakatimeSection) {
+					wakatimeSection.style.display = "none";
+				}
+				return;
+			}
 			wakaTimeError = "WakaTime stats unavailable";
 			return;
 		}
-		wakaTimeData = data;
+		if (data) {
+			wakaTimeData = data;
+		}
 	})
 	.catch(() => {
 		wakaTimeError = "Failed to load coding stats";
@@ -19,8 +37,12 @@ fetch("/api/wakatime")
 
 function updateWakaTimeStats() {
 	const statsContainer = document.getElementById("wakatime-stats");
+	const wakatimeSection = document.querySelector(".wakatime-section");
 
 	if (wakaTimeError) {
+		if (wakatimeSection) {
+			wakatimeSection.style.display = "none";
+		}
 		return;
 	}
 

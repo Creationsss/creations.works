@@ -314,7 +314,7 @@
 .full-page-contacts {
 	display: flex;
 	flex-direction: column;
-	gap: var(--spacing-xl);
+	gap: var(--spacing-md);
 	max-width: 600px;
 	margin: 0 auto;
 }
@@ -348,6 +348,120 @@
 	color: var(--text-secondary);
 	font-size: var(--font-size-lg);
 	padding: var(--spacing-xxl);
+}
+
+.timezone-section {
+	margin-bottom: var(--spacing-xxxl);
+	max-width: 600px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.timezone-info {
+	background-color: var(--bg-secondary);
+	padding: var(--spacing-lg);
+	border: 1px solid var(--border-primary);
+	text-align: center;
+	transition: all var(--transition-normal);
+}
+
+.timezone-container {
+	opacity: 1;
+	position: relative;
+	min-height: 104px; /* Increased for two rows */
+}
+
+.timezone-info {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	transition: opacity 0.5s ease;
+}
+
+.timezone-info:not(.skeleton-loading) {
+	opacity: 0;
+}
+
+.timezone-container.loaded .timezone-info:not(.skeleton-loading) {
+	opacity: 1;
+}
+
+.timezone-container.loaded .timezone-info.skeleton-loading {
+	opacity: 0;
+}
+
+.timezone-location,
+.timezone-time {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--spacing-sm) 0;
+}
+
+.timezone-time {
+	border-top: 1px solid var(--border-primary);
+	margin-top: var(--spacing-sm);
+	padding-top: var(--spacing-md);
+	cursor: pointer;
+}
+
+.timezone-label {
+	color: var(--text-secondary);
+	font-weight: 500;
+	font-size: var(--font-size-sm);
+}
+
+.timezone-value {
+	color: var(--accent-primary);
+	font-weight: 600;
+	font-size: var(--font-size-base);
+}
+
+.skeleton-loading {
+	pointer-events: none;
+	transition: opacity 0.5s ease;
+}
+
+.skeleton-text {
+	background: linear-gradient(
+		90deg,
+		var(--bg-tertiary) 25%,
+		var(--bg-secondary) 50%,
+		var(--bg-tertiary) 75%
+	);
+	background-size: 200% 100%;
+	animation: skeleton-shimmer 1.5s infinite;
+	border-radius: 4px;
+	color: transparent;
+	user-select: none;
+}
+
+.skeleton-text-sm {
+	width: 70px;
+	height: 20px;
+	display: inline-block;
+}
+
+.skeleton-text-md {
+	width: 140px;
+	height: 24px;
+	display: inline-block;
+}
+
+.skeleton-text-lg {
+	width: 80px;
+	height: 24px;
+	display: inline-block;
+}
+
+@keyframes skeleton-shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
 }
 
 @media (max-width: 768px) {

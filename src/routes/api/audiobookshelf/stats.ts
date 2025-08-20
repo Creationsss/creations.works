@@ -1,4 +1,5 @@
 import { audiobookshelf } from "#environment";
+import { CACHE_DURATION } from "#environment/constants";
 
 const routeDef: RouteDef = {
 	method: "GET",
@@ -8,7 +9,6 @@ const routeDef: RouteDef = {
 
 let cachedData: object | null = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 60 * 60 * 1000;
 
 async function handler(): Promise<Response> {
 	const now = Date.now();
@@ -16,6 +16,7 @@ async function handler(): Promise<Response> {
 	if (cachedData && now - cacheTimestamp < CACHE_DURATION) {
 		return Response.json(cachedData);
 	}
+
 	if (!audiobookshelf.url || !audiobookshelf.token) {
 		return Response.json(
 			{ error: "Audiobookshelf stats unavailable" },

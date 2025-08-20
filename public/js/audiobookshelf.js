@@ -8,7 +8,7 @@ fetch("/api/audiobookshelf/stats")
 	})
 	.then((data) => {
 		if (data.error) {
-			audiobookshelfError = "Audiobook stats unavailable";
+			audiobookshelfError = data.error;
 			return;
 		}
 		audiobookshelfData = data;
@@ -21,7 +21,15 @@ function updateAudiobookshelfStats() {
 	const statsContainer = document.getElementById("audiobookshelf-stats");
 
 	if (audiobookshelfError) {
-		statsContainer.style.display = "none";
+		if (statsContainer) {
+			statsContainer.innerHTML = `
+				<div class="error-message">
+					<h3>Unable to load audiobook stats</h3>
+					<p>${audiobookshelfError}</p>
+				</div>
+			`;
+			statsContainer.style.opacity = "1";
+		}
 		return;
 	}
 
