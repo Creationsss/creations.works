@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { environment } from "#environment";
 import { CACHE_DURATION } from "#environment/constants";
@@ -9,58 +9,88 @@ const routeDef: RouteDef = {
 	returns: "application/json",
 };
 
-const cachedData: { [key: string]: object } = {};
-const cacheTimestamps: { [key: string]: number } = {};
+const cache = new Map<
+	string,
+	{
+		data: object;
+		timestamp: number;
+		fileHashes: Map<string, number>;
+	}
+>();
 
-async function handler(request: ExtendedRequest): Promise<Response> {
-	try {
-		const { route } = request.query;
-		const filterRoute = typeof route === "string" ? route : null;
-		const cacheKey = filterRoute || "all";
-		const now = Date.now();
+const API_ROUTE_REGEX = /^\/api\/|^\/public\/|\./;
 
-		if (
-			cachedData[cacheKey] &&
-			cacheTimestamps[cacheKey] &&
-			now - cacheTimestamps[cacheKey] < CACHE_DURATION &&
-			!environment.development
-		) {
-			return Response.json(cachedData[cacheKey]);
-		}
+async function getFileModificationTimes(
+	logFiles: string[],
+	logsDir: string,
+): Promise<Map<string, number>> {
+	const fileTimes = new Map<string, number>();
 
-		const logsDir = resolve("logs");
-		const logFiles = await readdir(logsDir);
-		const jsonlFiles = logFiles.filter((file) => file.endsWith(".jsonl"));
+	await Promise.all(
+		logFiles.map(async (file) => {
+			try {
+				const filePath = resolve(logsDir, file);
+				const stats = await stat(filePath);
+				fileTimes.set(file, stats.mtimeMs);
+			} catch {}
+		}),
+	);
 
-		if (jsonlFiles.length === 0) {
-			return Response.json({ views: [], total: 0 });
-		}
+	return fileTimes;
+}
 
-		const pageViews = new Map<string, number>();
-		const uniquePageViews = new Map<string, Set<string>>();
+function hasFilesChanged(
+	cachedHashes: Map<string, number>,
+	currentHashes: Map<string, number>,
+): boolean {
+	if (cachedHashes.size !== currentHashes.size) return true;
 
-		for (const file of jsonlFiles) {
-			const filePath = resolve(logsDir, file);
-			const content = await Bun.file(filePath).text();
-			const lines = content
-				.trim()
-				.split("\n")
-				.filter((line) => line.length > 0);
+	for (const [file, mtime] of currentHashes) {
+		if (cachedHashes.get(file) !== mtime) return true;
+	}
 
-			for (const line of lines) {
-				try {
-					const entry: LogEntry = JSON.parse(line);
+	return false;
+}
 
-					if (entry.level === "GET" && entry.data?.context === "200") {
+async function processLogFiles(
+	logFiles: string[],
+	logsDir: string,
+	filterRoute: string | null,
+) {
+	const pageViews = new Map<string, number>();
+	const uniquePageViews = new Map<string, Set<string>>();
+
+	await Promise.all(
+		logFiles.map(async (file) => {
+			try {
+				const filePath = resolve(logsDir, file);
+				const content = await Bun.file(filePath).text();
+				const lines = content.trim().split("\n");
+
+				for (const line of lines) {
+					if (!line) continue;
+
+					try {
+						const entry: LogEntry = JSON.parse(line);
+
+						if (entry.level !== "GET" || entry.data?.context !== "200") {
+							continue;
+						}
+
 						const [url, , ip] = entry.data.data;
-						const urlObj = new URL(url);
-						const pathname = urlObj.pathname;
+						if (!url || !ip) continue;
 
-						if (
-							pathname.startsWith("/api/") ||
-							pathname.startsWith("/public/") ||
-							pathname.includes(".")
-						) {
+						const urlStart = url.indexOf("://");
+						if (urlStart === -1) continue;
+
+						const hostStart = urlStart + 3;
+						const pathStart = url.indexOf("/", hostStart);
+						const pathname: string =
+							pathStart === -1
+								? "/"
+								: url.substring(pathStart).split("?")[0] || "/";
+
+						if (API_ROUTE_REGEX.test(pathname)) {
 							continue;
 						}
 
@@ -73,25 +103,67 @@ async function handler(request: ExtendedRequest): Promise<Response> {
 						if (!uniquePageViews.has(pathname)) {
 							uniquePageViews.set(pathname, new Set());
 						}
-						const ipSet = uniquePageViews.get(pathname);
-						if (ipSet) {
-							ipSet.add(ip);
-						}
-					}
-				} catch {}
+						uniquePageViews.get(pathname)?.add(ip);
+					} catch {}
+				}
+			} catch {}
+		}),
+	);
+
+	return { pageViews, uniquePageViews };
+}
+
+async function handler(request: ExtendedRequest): Promise<Response> {
+	try {
+		const { route } = request.query;
+		const filterRoute = typeof route === "string" ? route : null;
+		const cacheKey = filterRoute || "all";
+		const now = Date.now();
+
+		const logsDir = resolve("logs");
+		let logFiles: string[];
+
+		try {
+			const allFiles = await readdir(logsDir);
+			logFiles = allFiles.filter((file) => file.endsWith(".jsonl"));
+		} catch {
+			return Response.json({ views: [], total: 0 });
+		}
+
+		if (logFiles.length === 0) {
+			return Response.json({ views: [], total: 0 });
+		}
+
+		const cachedEntry = cache.get(cacheKey);
+		if (cachedEntry && !environment.development) {
+			const timeSinceCache = now - cachedEntry.timestamp;
+
+			if (timeSinceCache < CACHE_DURATION) {
+				const currentFileHashes = await getFileModificationTimes(
+					logFiles,
+					logsDir,
+				);
+
+				if (!hasFilesChanged(cachedEntry.fileHashes, currentFileHashes)) {
+					return Response.json(cachedEntry.data);
+				}
 			}
 		}
 
-		const views: ViewsData[] = Array.from(pageViews.entries())
-			.map(([page, viewCount]) => {
-				const result: ViewsData = {
-					page: page === "/" ? "/" : page,
-					views: viewCount,
-					uniqueViews: uniquePageViews.get(page)?.size || 0,
-				};
+		const fileHashes = await getFileModificationTimes(logFiles, logsDir);
 
-				return result;
-			})
+		const { pageViews, uniquePageViews } = await processLogFiles(
+			logFiles,
+			logsDir,
+			filterRoute,
+		);
+
+		const views: ViewsData[] = Array.from(pageViews.entries())
+			.map(([page, viewCount]) => ({
+				page: page === "/" ? "/" : page,
+				views: viewCount,
+				uniqueViews: uniquePageViews.get(page)?.size || 0,
+			}))
 			.sort((a, b) => b.views - a.views);
 
 		const totalViews = Array.from(pageViews.values()).reduce(
@@ -107,8 +179,11 @@ async function handler(request: ExtendedRequest): Promise<Response> {
 			nextUpdate: now + CACHE_DURATION,
 		};
 
-		cachedData[cacheKey] = responseData;
-		cacheTimestamps[cacheKey] = now;
+		cache.set(cacheKey, {
+			data: responseData,
+			timestamp: now,
+			fileHashes,
+		});
 
 		return Response.json(responseData);
 	} catch (error) {
