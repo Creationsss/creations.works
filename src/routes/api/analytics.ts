@@ -103,6 +103,8 @@ async function handler(request: ExtendedRequest): Promise<Response> {
 			views,
 			total: totalViews,
 			filterRoute,
+			lastUpdate: now,
+			nextUpdate: now + CACHE_DURATION,
 		};
 
 		cachedData[cacheKey] = responseData;

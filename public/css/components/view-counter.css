@@ -80,6 +80,36 @@
 	color: var(--accent-secondary);
 }
 
+.view-counter-tooltip {
+	background: rgba(15, 15, 15, 0.95);
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 6px;
+	padding: var(--spacing-sm);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	white-space: nowrap;
+	pointer-events: none;
+	opacity: 0;
+	animation: tooltip-fade-in 0.2s ease forwards;
+}
+
+.view-counter-tooltip div {
+	margin: 2px 0;
+	color: var(--text-secondary);
+}
+
+@keyframes tooltip-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 @media (max-width: 768px) {
 	.view-counter {
 		bottom: var(--spacing-md);
@@ -94,5 +124,10 @@
 
 	.view-counter-label {
 		font-size: 0.7rem;
+	}
+
+	.view-counter-tooltip {
+		font-size: 0.75rem;
+		padding: var(--spacing-xs);
 	}
 }

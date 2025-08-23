@@ -1,5 +1,6 @@
 let viewsData = null;
 let viewsError = null;
+let analyticsData = null;
 
 const currentPath = window.location.pathname;
 const apiUrl = `/api/analytics?route=${encodeURIComponent(currentPath)}`;
@@ -18,6 +19,7 @@ fetch(apiUrl)
 		}
 		if (data?.views && data.views.length > 0) {
 			viewsData = data.views[0];
+			analyticsData = data;
 		}
 	})
 	.catch(() => {
@@ -47,6 +49,8 @@ function updateViewCounter() {
 			uniqueCountElement.textContent = formatNumber(viewsData.uniqueViews);
 		}
 
+		addHoverTooltip(viewCounterContainer);
+
 		setTimeout(() => {
 			viewCounterContainer.classList.add("loaded");
 		}, 10);
@@ -64,6 +68,61 @@ function formatNumber(num) {
 		return `${(num / 1000).toFixed(1).replace(/\.0$/, "")}K`;
 	}
 	return num.toString();
+}
+
+const isBrowserLocale24h = () =>
+	!new Intl.DateTimeFormat(navigator.language, { hour: "numeric" })
+		.format(0)
+		.match(/AM/);
+
+const is24HourFormat = localStorage.getItem("timezone24HourFormat")
+	? localStorage.getItem("timezone24HourFormat") === "true"
+	: isBrowserLocale24h();
+
+function formatTime(timestamp) {
+	const date = new Date(timestamp);
+
+	if (is24HourFormat) {
+		return (
+			date.toLocaleDateString(navigator.language) +
+			" " +
+			date.toLocaleTimeString(navigator.language, { hour12: false })
+		);
+	}
+	return (
+		date.toLocaleDateString(navigator.language) +
+		" " +
+		date.toLocaleTimeString(navigator.language, { hour12: true })
+	);
+}
+
+function addHoverTooltip(container) {
+	if (!analyticsData) return;
+
+	let tooltip = null;
+
+	container.addEventListener("mouseenter", () => {
+		tooltip = document.createElement("div");
+		tooltip.className = "view-counter-tooltip";
+		tooltip.innerHTML = `
+			<div>Cached: ${formatTime(analyticsData.lastUpdate)}</div>
+			<div>Refreshes: ${formatTime(analyticsData.nextUpdate)}</div>
+		`;
+		document.body.appendChild(tooltip);
+
+		const rect = container.getBoundingClientRect();
+		tooltip.style.position = "fixed";
+		tooltip.style.right = `${window.innerWidth - rect.left + 10}px`;
+		tooltip.style.top = `${rect.top}px`;
+		tooltip.style.zIndex = "1000";
+	});
+
+	container.addEventListener("mouseleave", () => {
+		if (tooltip) {
+			document.body.removeChild(tooltip);
+			tooltip = null;
+		}
+	});
 }
 
 document.addEventListener("DOMContentLoaded", updateViewCounter);
