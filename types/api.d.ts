@@ -76,3 +76,22 @@ interface WakapiFormattedData {
 		editors: WakapiFormattedItem[];
 	};
 }
+
+interface LogEntry {
+	timestamp: number;
+	level: string;
+	id: string;
+	file: string;
+	line: string;
+	column: string;
+	data: {
+		context: string;
+		data: [string, string, string];
+	};
+}
+
+interface ViewsData {
+	page: string;
+	views: number;
+	uniqueViews?: number;
+}
