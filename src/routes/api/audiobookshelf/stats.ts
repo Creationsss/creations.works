@@ -1,4 +1,4 @@
-import { audiobookshelf } from "#environment";
+import { audiobookshelf, environment } from "#environment";
 import { CACHE_DURATION } from "#environment/constants";
 
 const routeDef: RouteDef = {
@@ -13,7 +13,12 @@ let cacheTimestamp = 0;
 async function handler(): Promise<Response> {
 	const now = Date.now();
 
-	if (cachedData && now - cacheTimestamp < CACHE_DURATION) {
+	if (
+		cachedData &&
+		cacheTimestamp &&
+		now - cacheTimestamp < CACHE_DURATION &&
+		!environment.development
+	) {
 		return Response.json(cachedData);
 	}
 

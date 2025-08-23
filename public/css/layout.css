@@ -495,6 +495,7 @@
 	.hero-link {
 		width: 100%;
 		max-width: 300px;
+		text-align: center;
 	}
 
 	.full-page-contacts {
