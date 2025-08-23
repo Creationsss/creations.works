@@ -70,19 +70,19 @@ function formatNumber(num) {
 	return num.toString();
 }
 
-const isBrowserLocale24h = () =>
+const isBrowserLocale24h_ = () =>
 	!new Intl.DateTimeFormat(navigator.language, { hour: "numeric" })
 		.format(0)
 		.match(/AM/);
 
-const is24HourFormat = localStorage.getItem("timezone24HourFormat")
+const is24HourFormat_ = localStorage.getItem("timezone24HourFormat")
 	? localStorage.getItem("timezone24HourFormat") === "true"
-	: isBrowserLocale24h();
+	: isBrowserLocale24h_();
 
 function formatTime(timestamp) {
 	const date = new Date(timestamp);
 
-	if (is24HourFormat) {
+	if (is24HourFormat_) {
 		return (
 			date.toLocaleDateString(navigator.language) +
 			" " +
