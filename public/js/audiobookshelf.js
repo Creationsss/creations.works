@@ -205,7 +205,12 @@ function renderAudiobookshelfStats(data) {
 
 	if (mediaProgress.length > 0) {
 		const inProgressItems = mediaProgress
-			.filter((progress) => !progress.isFinished && progress.progress > 0)
+			.filter(
+				(progress) =>
+					!progress.isFinished &&
+					progress.progress > 0 &&
+					!progress.hideFromContinueListening,
+			)
 			.sort((a, b) => b.lastUpdate - a.lastUpdate)
 			.slice(0, 5);
 		const seenTitles = new Set();

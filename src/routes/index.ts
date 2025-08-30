@@ -12,7 +12,10 @@ async function handler(): Promise<Response> {
 	const bunFile = file(path);
 
 	if (!bunFile) {
-		return new Response("Uh oH!", { headers: { "Content-Type": "text/html" } });
+		return new Response("Index page not found", {
+			status: 404,
+			headers: { "Content-Type": "text/html" },
+		});
 	}
 
 	return new Response(bunFile.stream(), {
