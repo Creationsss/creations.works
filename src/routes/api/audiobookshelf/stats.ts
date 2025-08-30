@@ -91,6 +91,39 @@ async function handler(): Promise<Response> {
 			]),
 		);
 
+		const mediaProgress = authorizeData.user?.mediaProgress || [];
+		const finishedItemIds = mediaProgress
+			.filter((progress: { isFinished: boolean }) => progress.isFinished)
+			.map((progress: { libraryItemId: string }) => progress.libraryItemId);
+
+		const missingFinishedIds = finishedItemIds.filter(
+			(id: string) => !itemsWithCovers[id],
+		);
+
+		const missingBooksPromises = missingFinishedIds.map((id: string) =>
+			fetch(`${baseUrl}/api/items/${id}`, { headers })
+				.then((res) => (res.ok ? res.json() : null))
+				.then((data) =>
+					data
+						? {
+								id,
+								timeListening: 0,
+								mediaMetadata: data.media?.metadata || {},
+								coverUrl: `${baseUrl}/api/items/${id}/cover`,
+							}
+						: null,
+				)
+				.catch(() => null),
+		);
+
+		const missingBooks = await Promise.all(missingBooksPromises);
+
+		missingBooks.forEach((book) => {
+			if (book) {
+				itemsWithCovers[book.id] = book;
+			}
+		});
+
 		const formattedData = {
 			totalTime: listeningStatsData.totalTime || 0,
 			totalItems: Object.keys(listeningStatsData.items || {}).length,
@@ -99,7 +132,7 @@ async function handler(): Promise<Response> {
 			items: itemsWithCovers,
 			today: listeningStatsData.today || 0,
 			recentSessions: listeningStatsData.recentSessions || [],
-			mediaProgress: authorizeData.user?.mediaProgress || [],
+			mediaProgress: mediaProgress,
 			user: {
 				username: authorizeData.user?.username,
 				isActive: authorizeData.user?.isActive,

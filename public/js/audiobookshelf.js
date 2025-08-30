@@ -191,15 +191,38 @@ function renderAudiobookshelfStats(data) {
 			id: stats.id,
 		}));
 
-	const topSeries = Object.entries(seriesStats)
-		.sort((a, b) => b[1].time - a[1].time)
-		.slice(0, 5)
-		.map(([name, stats]) => ({
-			name,
-			hours: Math.round(stats.time / 3600),
-			books: stats.books,
-			coverUrls: stats.coverUrls.slice(0, 4),
-		}));
+	const allFinishedBooks = [];
+
+	const finishedItems = mediaProgress.filter((progress) => progress.isFinished);
+
+	finishedItems.forEach((progressItem) => {
+		const book = data.items[progressItem.libraryItemId];
+		if (!book) return;
+
+		const bookData = {
+			title: book.mediaMetadata?.title || "Unknown Title",
+			author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
+			coverUrl: book.coverUrl,
+			finishedAt: progressItem.finishedAt,
+			id: progressItem.libraryItemId,
+			series: book.mediaMetadata?.series?.[0] || null,
+		};
+
+		allFinishedBooks.push(bookData);
+	});
+
+	allFinishedBooks.sort((a, b) => {
+		const aDate = a.finishedAt && a.finishedAt > 0 ? a.finishedAt : 0;
+		const bDate = b.finishedAt && b.finishedAt > 0 ? b.finishedAt : 0;
+
+		if (aDate && bDate) {
+			return bDate - aDate;
+		}
+		if (aDate && !bDate) return -1;
+		if (!aDate && bDate) return 1;
+
+		return a.title.localeCompare(b.title);
+	});
 
 	let currentlyReading = [];
 
@@ -260,10 +283,10 @@ function renderAudiobookshelfStats(data) {
 				if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
 					const progress =
 						(book.timeListening / book.mediaMetadata.duration) * 100;
-					return progress > 0 && progress < 95;
+					return progress > 0 && progress < 90;
 				}
 				const hoursListened = book.timeListening / 3600;
-				return hoursListened > 0 && hoursListened < 20;
+				return hoursListened > 0 && hoursListened < 8;
 			})
 			.sort((a, b) => b.timeListening - a.timeListening)
 			.map((book) => {
@@ -524,39 +547,31 @@ function renderAudiobookshelfStats(data) {
 		}
 
 		${
-			topSeries.length
+			allFinishedBooks.length > 0
 				? `
-		<div class="top-series">
-			<h4>Top Series by Listening Time</h4>
-			<div class="series-list">
-				${topSeries
+		<div class="all-books">
+			<h4>Finished Books</h4>
+			<div class="book-search">
+				<input type="text" id="book-search-input" class="search-input" placeholder="Search books..." oninput="filterBooks()">
+			</div>
+			<div class="books-grid" id="all-books-grid">
+				${allFinishedBooks
 					.map(
-						(series, index) => `
-					<div class="series-item">
+						(book) => `
+					<div class="book-grid-item" data-title="${book.title.toLowerCase()}" data-author="${book.author.toLowerCase()}" data-series="${(book.series?.name || "").toLowerCase()}">
 						${
-							series.coverUrls.length > 0
-								? `<div class="series-covers">
-							${series.coverUrls
-								.map((coverUrl, coverIndex) => {
-									const spacing =
-										series.coverUrls.length === 1
-											? 0
-											: series.coverUrls.length === 2
-												? coverIndex * 25
-												: series.coverUrls.length === 3
-													? coverIndex * 20
-													: coverIndex * 15;
-									return `<img src="${coverUrl}" alt="${series.name} book ${coverIndex + 1}" loading="lazy" onerror="this.style.display='none'" style="left: ${spacing}px; z-index: ${series.coverUrls.length - coverIndex};">`;
-								})
-								.join("")}
+							book.coverUrl
+								? `<div class="book-grid-cover">
+							<img src="${book.coverUrl}" alt="${book.title} cover" loading="lazy" onerror="this.style.display='none'">
 						</div>`
 								: ""
 						}
-						<div class="series-info">
-							<span class="series-name">${series.name}</span>
-							<span class="series-stats"><span class="stat-value">${series.hours}h</span> • <span class="stat-value">${series.books}</span> books</span>
+						<div class="book-grid-info">
+							<span class="book-grid-title">${book.title}</span>
+							<span class="book-grid-author">by ${book.author}</span>
+							${book.series ? `<span class="book-grid-series">${book.series.name}</span>` : ""}
+							<span class="book-grid-stats">${book.finishedAt && book.finishedAt > 0 ? `Finished ${new Date(book.finishedAt).toLocaleDateString()}` : "Finished"}</span>
 						</div>
-						<span class="rank">#${index + 1}</span>
 					</div>
 				`,
 					)
@@ -667,6 +682,33 @@ function loadBookDescription(bookElement) {
 // biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function clearBookTimeout() {
 	clearTimeout(bookDescriptionTimeout);
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
+function filterBooks() {
+	const searchInput = document.getElementById("book-search-input");
+	const booksGrid = document.getElementById("all-books-grid");
+
+	if (!searchInput || !booksGrid) return;
+
+	const searchTerm = searchInput.value.toLowerCase();
+	const bookItems = booksGrid.querySelectorAll(".book-grid-item");
+
+	bookItems.forEach((item) => {
+		const title = item.dataset.title || "";
+		const author = item.dataset.author || "";
+		const series = item.dataset.series || "";
+
+		if (
+			title.includes(searchTerm) ||
+			author.includes(searchTerm) ||
+			series.includes(searchTerm)
+		) {
+			item.style.display = "flex";
+		} else {
+			item.style.display = "none";
+		}
+	});
 }
 
 document.addEventListener("DOMContentLoaded", updateAudiobookshelfStats);
