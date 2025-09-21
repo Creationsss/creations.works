@@ -1,4 +1,3 @@
-
 interface Library {
 	id: string;
 	name: string;
@@ -33,7 +32,6 @@ interface AudiobookshelfStats {
 	mediaProgress: unknown[];
 	user: AudiobookshelfUser;
 }
-
 
 interface LogEntry {
 	timestamp: number;

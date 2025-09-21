@@ -4,7 +4,6 @@ type Environment = {
 	development: boolean;
 };
 
-
 type Audiobookshelf = {
 	url: string | false;
 	token: string | null;

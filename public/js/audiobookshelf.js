@@ -627,13 +627,23 @@ function loadAuthorDescription(authorElement) {
 
 	clearTimeout(authorDescriptionTimeout);
 
-	authorDescriptionTimeout = setTimeout(async () => {
-		const descriptionDiv = authorElement.querySelector(".author-description");
+	const descriptionDiv = authorElement.querySelector(".author-description");
 
+	addDimmingOverlay();
+
+	descriptionDiv.innerHTML = `
+		<div class="skeleton-line skeleton long"></div>
+		<div class="skeleton-line skeleton medium"></div>
+		<div class="skeleton-line skeleton short"></div>
+	`;
+	descriptionDiv.style.display = "block";
+
+	authorDescriptionTimeout = setTimeout(async () => {
 		if (authorDescriptionCache[authorId]) {
 			if (authorDescriptionCache[authorId].description) {
 				descriptionDiv.innerHTML = authorDescriptionCache[authorId].description;
-				descriptionDiv.style.display = "block";
+			} else {
+				descriptionDiv.innerHTML = "<p>No description available</p>";
 			}
 			return;
 		}
@@ -648,16 +658,27 @@ function loadAuthorDescription(authorElement) {
 
 				if (data.description) {
 					descriptionDiv.innerHTML = data.description;
-					descriptionDiv.style.display = "block";
+				} else {
+					descriptionDiv.innerHTML = "<p>No description available</p>";
 				}
+			} else {
+				descriptionDiv.innerHTML = "<p>Failed to load description</p>";
 			}
-		} catch {}
-	}, 500);
+		} catch {
+			descriptionDiv.innerHTML = "<p>Failed to load description</p>";
+		}
+	}, 300);
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function clearAuthorTimeout() {
 	clearTimeout(authorDescriptionTimeout);
+	const descriptionDivs = document.querySelectorAll(".author-description");
+	descriptionDivs.forEach((div) => {
+		div.style.display = "none";
+		div.innerHTML = "";
+	});
+	removeDimmingOverlay();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
@@ -667,21 +688,37 @@ function loadBookDescription(bookElement) {
 
 	clearTimeout(bookDescriptionTimeout);
 
-	bookDescriptionTimeout = setTimeout(() => {
-		const descriptionDiv = bookElement.querySelector(".book-description");
+	const descriptionDiv = bookElement.querySelector(".book-description");
 
+	addDimmingOverlay();
+
+	descriptionDiv.innerHTML = `
+		<div class="skeleton-line skeleton long"></div>
+		<div class="skeleton-line skeleton medium"></div>
+		<div class="skeleton-line skeleton short"></div>
+	`;
+	descriptionDiv.style.display = "block";
+
+	bookDescriptionTimeout = setTimeout(() => {
 		const bookData = currentlyReadingBooks.find((book) => book.id === bookId);
 
 		if (bookData?.description) {
 			descriptionDiv.innerHTML = bookData.description;
-			descriptionDiv.style.display = "block";
+		} else {
+			descriptionDiv.innerHTML = "<p>No description available</p>";
 		}
-	}, 500);
+	}, 300);
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function clearBookTimeout() {
 	clearTimeout(bookDescriptionTimeout);
+	const descriptionDivs = document.querySelectorAll(".book-description");
+	descriptionDivs.forEach((div) => {
+		div.style.display = "none";
+		div.innerHTML = "";
+	});
+	removeDimmingOverlay();
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
@@ -709,6 +746,30 @@ function filterBooks() {
 			item.style.display = "none";
 		}
 	});
+}
+
+function addDimmingOverlay() {
+	let overlay = document.querySelector(".description-overlay");
+	if (!overlay) {
+		overlay = document.createElement("div");
+		overlay.className = "description-overlay";
+		document.body.appendChild(overlay);
+	}
+	setTimeout(() => {
+		overlay.classList.add("active");
+	}, 10);
+}
+
+function removeDimmingOverlay() {
+	const overlay = document.querySelector(".description-overlay");
+	if (overlay) {
+		overlay.classList.remove("active");
+		setTimeout(() => {
+			if (overlay.parentNode && !overlay.classList.contains("active")) {
+				overlay.parentNode.removeChild(overlay);
+			}
+		}, 300);
+	}
 }
 
 document.addEventListener("DOMContentLoaded", updateAudiobookshelfStats);

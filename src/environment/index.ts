@@ -8,7 +8,6 @@ const environment: Environment = {
 		process.env.NODE_ENV === "development" || process.argv.includes("--dev"),
 };
 
-
 const audiobookshelf: Audiobookshelf = {
 	url: process.env.AUDIOBOOKSHELF_URL || false,
 	token: process.env.AUDIOBOOKSHELF_TOKEN || null,
@@ -23,7 +22,6 @@ function verifyRequiredVariables(): void {
 	let hasError = false;
 
 	const joined = [...requiredVariables];
-
 
 	if (audiobookshelf.url) {
 		joined.push("AUDIOBOOKSHELF_TOKEN");
@@ -46,9 +44,4 @@ function verifyRequiredVariables(): void {
 	}
 }
 
-export {
-	environment,
-	audiobookshelf,
-	timezoneDB,
-	verifyRequiredVariables,
-};
+export { environment, audiobookshelf, timezoneDB, verifyRequiredVariables };
