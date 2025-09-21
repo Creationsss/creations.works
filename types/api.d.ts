@@ -1,20 +1,3 @@
-interface WakapiItem {
-	name: string;
-	percent?: number;
-	total_seconds: number;
-}
-
-interface WakapiData {
-	human_readable_total?: string;
-	human_readable_daily_average?: string;
-	total_seconds?: number;
-	languages?: WakapiItem[];
-	projects?: WakapiItem[];
-	editors?: WakapiItem[];
-	operating_systems?: WakapiItem[];
-	machines?: WakapiItem[];
-	best_day?: { hours?: { name: string }[] };
-}
 
 interface Library {
 	id: string;
@@ -51,31 +34,6 @@ interface AudiobookshelfStats {
 	user: AudiobookshelfUser;
 }
 
-interface WakapiFormattedItem {
-	name: string;
-	percent: number;
-	hours: number;
-	minutes: number;
-	totalSeconds: number;
-}
-
-interface WakapiFormattedData {
-	allTime: {
-		total: string;
-		average: string;
-		languages: WakapiFormattedItem[];
-		projects: WakapiFormattedItem[];
-		editors: WakapiFormattedItem[];
-		operatingSystems: WakapiFormattedItem[];
-	};
-	today: {
-		total: string;
-		totalSeconds: number;
-		languages: WakapiFormattedItem[];
-		projects: WakapiFormattedItem[];
-		editors: WakapiFormattedItem[];
-	};
-}
 
 interface LogEntry {
 	timestamp: number;

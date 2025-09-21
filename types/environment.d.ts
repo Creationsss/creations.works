@@ -4,10 +4,6 @@ type Environment = {
 	development: boolean;
 };
 
-type Wakapi = {
-	url: string | false;
-	key: string | null;
-};
 
 type Audiobookshelf = {
 	url: string | false;

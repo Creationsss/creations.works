@@ -8,10 +8,6 @@ const environment: Environment = {
 		process.env.NODE_ENV === "development" || process.argv.includes("--dev"),
 };
 
-const wakapi: Wakapi = {
-	url: process.env.WAKAPI || false,
-	key: process.env.WAKAPI_KEY || null,
-};
 
 const audiobookshelf: Audiobookshelf = {
 	url: process.env.AUDIOBOOKSHELF_URL || false,
@@ -28,9 +24,6 @@ function verifyRequiredVariables(): void {
 
 	const joined = [...requiredVariables];
 
-	if (wakapi.url) {
-		joined.push("WAKAPI_KEY");
-	}
 
 	if (audiobookshelf.url) {
 		joined.push("AUDIOBOOKSHELF_TOKEN");
@@ -55,7 +48,6 @@ function verifyRequiredVariables(): void {
 
 export {
 	environment,
-	wakapi,
 	audiobookshelf,
 	timezoneDB,
 	verifyRequiredVariables,
