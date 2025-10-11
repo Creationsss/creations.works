@@ -17,7 +17,9 @@ type TimezoneDB = {
 type GitLab = {
 	instanceUrl: string | false;
 	token: string | null;
-	namespaceId: string | null;
-	namespaceType: "user" | "group";
+	namespaces: Array<{
+		id: string;
+		type: "user" | "group";
+	}>;
 	ignoreNames: string[];
 };

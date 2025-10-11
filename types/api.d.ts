@@ -59,6 +59,7 @@ interface GitLabProject {
 	web_url: string;
 	topics: string[];
 	created_at: string;
+	last_activity_at: string;
 	default_branch: string;
 	star_count: number;
 	forks_count: number;

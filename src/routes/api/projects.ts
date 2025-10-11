@@ -23,7 +23,7 @@ async function handler(): Promise<Response> {
 		return Response.json(cachedData);
 	}
 
-	if (!gitlab.instanceUrl || !gitlab.token || !gitlab.namespaceId) {
+	if (!gitlab.instanceUrl || !gitlab.token || gitlab.namespaces.length === 0) {
 		return Response.json(
 			{ error: "GitLab service unavailable" },
 			{ status: 503 },
@@ -39,43 +39,54 @@ async function handler(): Promise<Response> {
 
 		baseUrl = baseUrl.replace(/\/$/, "");
 
-		const namespace = gitlab.namespaceType === "group" ? "groups" : "users";
-		const apiUrl = `${baseUrl}/api/v4/${namespace}/${encodeURIComponent(gitlab.namespaceId)}/projects?per_page=100&order_by=last_activity_at&sort=desc`;
-
-		echo.debug(`Fetching projects from: ${apiUrl}`);
-
 		const token = gitlab.token as string;
 
-		const response = await fetch(apiUrl, {
-			headers: {
-				"PRIVATE-TOKEN": token,
-			},
-		});
+		const projectPromises = gitlab.namespaces.map(async (namespace) => {
+			const namespaceType = namespace.type === "group" ? "groups" : "users";
+			const apiUrl = `${baseUrl}/api/v4/${namespaceType}/${encodeURIComponent(namespace.id)}/projects?per_page=100&order_by=last_activity_at&sort=desc`;
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			echo.error({
-				message: "GitLab API Error",
-				error: {
-					status: response.status,
-					statusText: response.statusText,
-					url: apiUrl,
-					response: errorText,
+			echo.debug(`Fetching projects from: ${apiUrl}`);
+
+			const response = await fetch(apiUrl, {
+				headers: {
+					"PRIVATE-TOKEN": token,
 				},
 			});
-			throw new Error(
-				`GitLab API responded with status ${response.status}: ${errorText}`,
-			);
-		}
 
-		const allProjects: GitLabProject[] = await response.json();
+			if (!response.ok) {
+				const errorText = await response.text();
+				echo.error({
+					message: "GitLab API Error",
+					error: {
+						status: response.status,
+						statusText: response.statusText,
+						url: apiUrl,
+						response: errorText,
+					},
+				});
+				throw new Error(
+					`GitLab API responded with status ${response.status}: ${errorText}`,
+				);
+			}
+
+			return (await response.json()) as GitLabProject[];
+		});
+
+		const projectArrays = await Promise.all(projectPromises);
+		const allProjects: GitLabProject[] = projectArrays.flat();
+
+		allProjects.sort((a, b) => {
+			const dateA = new Date(a.last_activity_at).getTime();
+			const dateB = new Date(b.last_activity_at).getTime();
+			return dateB - dateA;
+		});
 
 		const projects = allProjects.filter(
 			(project) => !gitlab.ignoreNames.includes(project.name),
 		);
 
 		echo.debug(
-			`Fetched ${allProjects.length} projects from GitLab namespace: ${gitlab.namespaceId}`,
+			`Fetched ${allProjects.length} projects from ${gitlab.namespaces.length} GitLab namespace(s)`,
 		);
 
 		if (gitlab.ignoreNames.length > 0) {
@@ -86,7 +97,7 @@ async function handler(): Promise<Response> {
 
 		if (projects.length === 0) {
 			echo.debug(
-				`No projects to display. Check if namespace '${gitlab.namespaceId}' is correct and has projects.`,
+				"No projects to display. Check if namespaces are correct and have projects.",
 			);
 		}
 

@@ -21,9 +21,23 @@ const timezoneDB: TimezoneDB = {
 const gitlab: GitLab = {
 	instanceUrl: process.env.GITLAB_INSTANCE_URL || false,
 	token: process.env.GITLAB_TOKEN || null,
-	namespaceId: process.env.GITLAB_NAMESPACE_ID || null,
-	namespaceType:
-		(process.env.GITLAB_NAMESPACE_TYPE as "user" | "group") || "user",
+	namespaces: (() => {
+		const namespaceIds = process.env.GITLAB_NAMESPACE_ID
+			? process.env.GITLAB_NAMESPACE_ID.split(",").map((id) => id.trim())
+			: [];
+		const namespaceTypes = process.env.GITLAB_NAMESPACE_TYPE
+			? process.env.GITLAB_NAMESPACE_TYPE.split(",").map((type) => type.trim())
+			: [];
+
+		if (namespaceIds.length === 0) {
+			return [];
+		}
+
+		return namespaceIds.map((id, index) => ({
+			id,
+			type: (namespaceTypes[index] as "user" | "group") || "user",
+		}));
+	})(),
 	ignoreNames: process.env.GITLAB_IGNORE_NAMES
 		? process.env.GITLAB_IGNORE_NAMES.split(",").map((name) => name.trim())
 		: [],
@@ -44,7 +58,12 @@ function verifyRequiredVariables(): void {
 
 	if (gitlab.instanceUrl) {
 		joined.push("GITLAB_TOKEN");
-		joined.push("GITLAB_NAMESPACE_ID");
+		if (gitlab.namespaces.length === 0) {
+			echo.error(
+				"GITLAB_NAMESPACE_ID is required when GITLAB_INSTANCE_URL is set",
+			);
+			hasError = true;
+		}
 	}
 
 	for (const key of joined) {
