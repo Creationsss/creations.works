@@ -10,6 +10,8 @@
 	<link rel="stylesheet" href="/public/css/style.css">
 	<link rel="stylesheet" href="/public/css/layout.css">
 	<link rel="stylesheet" href="/public/css/typography.css">
+
+	<script src="/public/js/projects.js" defer></script>
 </head>
 
 <body>
@@ -26,80 +28,13 @@
 	<main class="main">
 		<section class="projects section">
 			<div class="container">
-				<h2>Featured Projects</h2>
-				<p>Here are some of the projects I've worked on that I am proud of</p>
-
-				<div class="project-grid">
-					<div class="project">
-						<h3>@atums/echo</h3>
-						<p>A lightweight Node.js package for enhanced console logging with colors, timestamps, and
-							structured output formatting.</p>
-						<div class="project-tech">
-							<span class="tech-tag typescript">TypeScript</span>
-							<span class="tech-tag npm">NPM</span>
-						</div>
-						<div class="project-links">
-							<a href="https://heliopolis.live/atums/echo" class="project-link">Source Code</a>
-							<a href="https://www.npmjs.com/package/@atums/echo" class="project-link">NPM Package</a>
-						</div>
-					</div>
-
-					<div class="project">
-						<h3>Discord Profile Page</h3>
-						<p>A cool little web app that shows your Discord profile, current activity, and more. Built with
-							Bun and features real-time presence data from Lanyard.</p>
-						<div class="project-tech">
-							<span class="tech-tag html">HTML</span>
-							<span class="tech-tag css">CSS</span>
-							<span class="tech-tag typescript">TypeScript</span>
-							<span class="tech-tag javascript">JavaScript</span>
-						</div>
-						<div class="project-links">
-							<a href="https://heliopolis.live/creations/profilePage" class="project-link">Source Code</a>
-						</div>
-					</div>
-
-					<div class="project">
-						<h3>Timezone DB</h3>
-						<p>A simple Rust-powered API service for managing and retrieving user timezones with Discord
-							OAuth authentication, PostgreSQL storage, and Redis session management.</p>
-						<div class="project-tech">
-							<span class="tech-tag rust">Rust</span>
-						</div>
-						<div class="project-links">
-							<a href="https://heliopolis.live/creations/timezoneDB" class="project-link">Source Code</a>
-						</div>
-					</div>
-
-					<div class="project">
-						<h3>Docker Runner</h3>
-						<p>A Docker-based CI/CD runner for Node.js projects that automatically clones repositories and executes package manager commands with support for npm, yarn, pnpm, and bun.</p>
-						<div class="project-tech">
-							<span class="tech-tag bash">Bash</span>
-						</div>
-						<div class="project-links">
-							<a href="https://heliopolis.live/creations/node-runner" class="project-link">Source Code</a>
-							<a href="https://hub.docker.com/r/cr8ns/node-runner" class="project-link">Docker Hub</a>
-						</div>
-					</div>
-
-					<div class="project">
-						<h3>Badge Aggregator API</h3>
-						<p>A Discord badge aggregation service that collects badges from Vencord, Nekocord, Equicord, and other sources with Redis caching support for optimal performance.</p>
-						<div class="project-tech">
-							<span class="tech-tag typescript">TypeScript</span>
-						</div>
-						<div class="project-links">
-							<a href="https://heliopolis.live/creations/badgeAPI" class="project-link">Source Code</a>
-						</div>
-					</div>
+				<div id="projects-container">
+					<div class="loading-spinner">Loading projects...</div>
 				</div>
 
 			</div>
 		</section>
 	</main>
-
-
 </body>
 
 </html>

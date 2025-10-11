@@ -18,6 +18,17 @@ const timezoneDB: TimezoneDB = {
 	id: process.env.TIMEZONEDB_ID || null,
 };
 
+const gitlab: GitLab = {
+	instanceUrl: process.env.GITLAB_INSTANCE_URL || false,
+	token: process.env.GITLAB_TOKEN || null,
+	namespaceId: process.env.GITLAB_NAMESPACE_ID || null,
+	namespaceType:
+		(process.env.GITLAB_NAMESPACE_TYPE as "user" | "group") || "user",
+	ignoreNames: process.env.GITLAB_IGNORE_NAMES
+		? process.env.GITLAB_IGNORE_NAMES.split(",").map((name) => name.trim())
+		: [],
+};
+
 function verifyRequiredVariables(): void {
 	let hasError = false;
 
@@ -29,6 +40,11 @@ function verifyRequiredVariables(): void {
 
 	if (timezoneDB.url) {
 		joined.push("TIMEZONEDB_ID");
+	}
+
+	if (gitlab.instanceUrl) {
+		joined.push("GITLAB_TOKEN");
+		joined.push("GITLAB_NAMESPACE_ID");
 	}
 
 	for (const key of joined) {
@@ -44,4 +60,10 @@ function verifyRequiredVariables(): void {
 	}
 }
 
-export { environment, audiobookshelf, timezoneDB, verifyRequiredVariables };
+export {
+	environment,
+	audiobookshelf,
+	timezoneDB,
+	gitlab,
+	verifyRequiredVariables,
+};

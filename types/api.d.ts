@@ -51,3 +51,30 @@ interface ViewsData {
 	views: number;
 	uniqueViews?: number;
 }
+
+interface GitLabProject {
+	id: number;
+	name: string;
+	description: string | null;
+	web_url: string;
+	topics: string[];
+	created_at: string;
+	default_branch: string;
+	star_count: number;
+	forks_count: number;
+	open_issues_count: number;
+	detectedLanguages?: string[];
+}
+
+interface ProjectResponse {
+	name: string;
+	description: string;
+	sourceUrl: string;
+	technologies: string[];
+	links: Array<{ text: string; url: string }>;
+	stats: {
+		stars: number;
+		forks: number;
+		issues: number;
+	};
+}
