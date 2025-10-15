@@ -11,6 +11,9 @@ const environment: Environment = {
 const audiobookshelf: Audiobookshelf = {
 	url: process.env.AUDIOBOOKSHELF_URL || false,
 	token: process.env.AUDIOBOOKSHELF_TOKEN || null,
+	libraryIds: process.env.AUDIOBOOKSHELF_LIBRARY_IDS
+		? process.env.AUDIOBOOKSHELF_LIBRARY_IDS.split(",").map((id) => id.trim())
+		: [],
 };
 
 const timezoneDB: TimezoneDB = {

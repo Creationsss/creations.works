@@ -65,64 +65,70 @@ async function handler(): Promise<Response> {
 		const authorizeData = await authorizeResponse.json();
 		const librariesData: LibrariesResponse = await librariesResponse.json();
 
-		const libraryDetailsPromises = librariesData.libraries
-			.filter((lib: Library) => lib.mediaType === "book")
-			.map((lib: Library) =>
-				fetch(`${baseUrl}/api/libraries/${lib.id}/items?limit=1`, { headers })
-					.then((res) => (res.ok ? res.json() : null))
-					.then((data) => ({
-						id: lib.id,
-						name: lib.name,
-						total: data?.total || 0,
-					}))
-					.catch(() => ({ id: lib.id, name: lib.name, total: 0 })),
-			);
+		const allowedLibraries = librariesData.libraries.filter((lib: Library) => {
+			if (lib.mediaType !== "book") return false;
+			if (
+				audiobookshelf.libraryIds.length > 0 &&
+				!audiobookshelf.libraryIds.includes(lib.id)
+			) {
+				return false;
+			}
+			return true;
+		});
 
-		const libraryDetails = await Promise.all(libraryDetailsPromises);
+		const libraryItemsPromises = allowedLibraries.map((lib: Library) =>
+			fetch(`${baseUrl}/api/libraries/${lib.id}/items?limit=0`, { headers })
+				.then((res) => (res.ok ? res.json() : null))
+				.then((data) => ({
+					libraryId: lib.id,
+					libraryName: lib.name,
+					total: data?.total || 0,
+					items: data?.results || [],
+				}))
+				.catch(() => ({
+					libraryId: lib.id,
+					libraryName: lib.name,
+					total: 0,
+					items: [],
+				})),
+		);
+
+		const libraryItemsData = await Promise.all(libraryItemsPromises);
+
+		const libraryDetails = libraryItemsData.map((lib) => ({
+			id: lib.libraryId,
+			name: lib.libraryName,
+			total: lib.total,
+		}));
+
 		const totalBooks = libraryDetails.reduce((sum, lib) => sum + lib.total, 0);
 
-		const itemsWithCovers = Object.fromEntries(
-			Object.entries(listeningStatsData.items || {}).map(([id, item]) => [
-				id,
-				{
-					...(item as Record<string, unknown>),
-					coverUrl: `${baseUrl}/api/items/${id}/cover`,
-				},
-			]),
-		);
+		const itemsWithCovers: Record<string, unknown> = {};
+		for (const lib of libraryItemsData) {
+			for (const item of lib.items) {
+				const metadata = item.media?.metadata || {};
+				const listeningStatsItem = listeningStatsData.items?.[item.id];
+
+				const transformedMetadata: Record<string, unknown> = { ...metadata };
+
+				if (metadata.authorName) {
+					transformedMetadata.authors = [{ name: metadata.authorName }];
+				}
+
+				if (metadata.seriesName) {
+					transformedMetadata.series = [{ name: metadata.seriesName }];
+				}
+
+				itemsWithCovers[item.id] = {
+					id: item.id,
+					timeListening: listeningStatsItem?.timeListening || 0,
+					mediaMetadata: transformedMetadata,
+					coverUrl: `${baseUrl}/api/items/${item.id}/cover`,
+				};
+			}
+		}
 
 		const mediaProgress = authorizeData.user?.mediaProgress || [];
-		const finishedItemIds = mediaProgress
-			.filter((progress: { isFinished: boolean }) => progress.isFinished)
-			.map((progress: { libraryItemId: string }) => progress.libraryItemId);
-
-		const missingFinishedIds = finishedItemIds.filter(
-			(id: string) => !itemsWithCovers[id],
-		);
-
-		const missingBooksPromises = missingFinishedIds.map((id: string) =>
-			fetch(`${baseUrl}/api/items/${id}`, { headers })
-				.then((res) => (res.ok ? res.json() : null))
-				.then((data) =>
-					data
-						? {
-								id,
-								timeListening: 0,
-								mediaMetadata: data.media?.metadata || {},
-								coverUrl: `${baseUrl}/api/items/${id}/cover`,
-							}
-						: null,
-				)
-				.catch(() => null),
-		);
-
-		const missingBooks = await Promise.all(missingBooksPromises);
-
-		missingBooks.forEach((book) => {
-			if (book) {
-				itemsWithCovers[book.id] = book;
-			}
-		});
 
 		const formattedData = {
 			totalTime: listeningStatsData.totalTime || 0,

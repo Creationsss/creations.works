@@ -7,6 +7,7 @@ type Environment = {
 type Audiobookshelf = {
 	url: string | false;
 	token: string | null;
+	libraryIds: string[];
 };
 
 type TimezoneDB = {

@@ -89,7 +89,6 @@ function renderAudiobookshelfStats(data) {
 	const uniqueSeries = new Set();
 	const uniqueGenres = new Set();
 	const publishers = new Set();
-	const authorStats = {};
 	const seriesStats = {};
 
 	const dailyStats = {};
@@ -135,18 +134,6 @@ function renderAudiobookshelfStats(data) {
 		if (book.mediaMetadata?.authors) {
 			book.mediaMetadata.authors.forEach((author) => {
 				uniqueAuthors.add(author.name);
-				if (!authorStats[author.name]) {
-					authorStats[author.name] = {
-						time: 0,
-						books: 0,
-						id: author.id,
-						imageUrl: author.id
-							? `/api/audiobookshelf/author-image/${author.id}`
-							: null,
-					};
-				}
-				authorStats[author.name].time += book.timeListening;
-				authorStats[author.name].books += 1;
 			});
 		}
 		if (book.mediaMetadata?.series) {
@@ -179,17 +166,6 @@ function renderAudiobookshelfStats(data) {
 			publishers.add(book.mediaMetadata.publisher);
 		}
 	});
-
-	const topAuthors = Object.entries(authorStats)
-		.sort((a, b) => b[1].time - a[1].time)
-		.slice(0, 5)
-		.map(([name, stats]) => ({
-			name,
-			hours: Math.round(stats.time / 3600),
-			books: stats.books,
-			imageUrl: stats.imageUrl,
-			id: stats.id,
-		}));
 
 	const allFinishedBooks = [];
 
@@ -514,39 +490,6 @@ function renderAudiobookshelfStats(data) {
 		}
 
 		${
-			topAuthors.length
-				? `
-		<div class="top-authors">
-			<h4>Top Authors by Listening Time</h4>
-			<div class="authors-list">
-				${topAuthors
-					.map(
-						(author, index) => `
-					<div class="author-item" data-author-id="${author.id || ""}" onmouseenter="loadAuthorDescription(this)" onmouseleave="clearAuthorTimeout()">
-						${
-							author.imageUrl
-								? `<div class="author-image">
-							<img src="${author.imageUrl}" alt="${author.name}" loading="lazy" onerror="this.style.display='none'">
-						</div>`
-								: ""
-						}
-						<div class="author-info">
-							<span class="author-name">${author.name}</span>
-							<span class="author-stats"><span class="stat-value">${author.hours}h</span> • <span class="stat-value">${author.books}</span> books</span>
-						</div>
-						<span class="rank">#${index + 1}</span>
-						<div class="author-description" style="display: none;"></div>
-					</div>
-				`,
-					)
-					.join("")}
-			</div>
-		</div>
-		`
-				: ""
-		}
-
-		${
 			allFinishedBooks.length > 0
 				? `
 		<div class="all-books">
@@ -570,7 +513,7 @@ function renderAudiobookshelfStats(data) {
 							<span class="book-grid-title">${book.title}</span>
 							<span class="book-grid-author">by ${book.author}</span>
 							${book.series ? `<span class="book-grid-series">${book.series.name}</span>` : ""}
-							<span class="book-grid-stats">${book.finishedAt && book.finishedAt > 0 ? `Finished ${new Date(book.finishedAt).toLocaleDateString()}` : "Finished"}</span>
+							${book.finishedAt && book.finishedAt > 0 ? `<span class="book-grid-stats">Finished ${new Date(book.finishedAt).toLocaleDateString()}</span>` : ""}
 						</div>
 					</div>
 				`,
@@ -615,71 +558,8 @@ function renderAudiobookshelfStats(data) {
 	container.innerHTML = statsHTML;
 }
 
-let authorDescriptionTimeout;
-const authorDescriptionCache = {};
 let bookDescriptionTimeout;
 let currentlyReadingBooks = [];
-
-// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
-function loadAuthorDescription(authorElement) {
-	const authorId = authorElement.dataset.authorId;
-	if (!authorId) return;
-
-	clearTimeout(authorDescriptionTimeout);
-
-	const descriptionDiv = authorElement.querySelector(".author-description");
-
-	addDimmingOverlay();
-
-	descriptionDiv.innerHTML = `
-		<div class="skeleton-line skeleton long"></div>
-		<div class="skeleton-line skeleton medium"></div>
-		<div class="skeleton-line skeleton short"></div>
-	`;
-	descriptionDiv.style.display = "block";
-
-	authorDescriptionTimeout = setTimeout(async () => {
-		if (authorDescriptionCache[authorId]) {
-			if (authorDescriptionCache[authorId].description) {
-				descriptionDiv.innerHTML = authorDescriptionCache[authorId].description;
-			} else {
-				descriptionDiv.innerHTML = "<p>No description available</p>";
-			}
-			return;
-		}
-
-		try {
-			const response = await fetch(
-				`/api/audiobookshelf/author-details/${authorId}`,
-			);
-			if (response.ok) {
-				const data = await response.json();
-				authorDescriptionCache[authorId] = data;
-
-				if (data.description) {
-					descriptionDiv.innerHTML = data.description;
-				} else {
-					descriptionDiv.innerHTML = "<p>No description available</p>";
-				}
-			} else {
-				descriptionDiv.innerHTML = "<p>Failed to load description</p>";
-			}
-		} catch {
-			descriptionDiv.innerHTML = "<p>Failed to load description</p>";
-		}
-	}, 300);
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
-function clearAuthorTimeout() {
-	clearTimeout(authorDescriptionTimeout);
-	const descriptionDivs = document.querySelectorAll(".author-description");
-	descriptionDivs.forEach((div) => {
-		div.style.display = "none";
-		div.innerHTML = "";
-	});
-	removeDimmingOverlay();
-}
 
 // biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function loadBookDescription(bookElement) {

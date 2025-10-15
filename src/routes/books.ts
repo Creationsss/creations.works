@@ -8,11 +8,11 @@ const routeDef: RouteDef = {
 };
 
 async function handler(): Promise<Response> {
-	const path = resolve("public", "views", "audiobookshelf.html");
+	const path = resolve("public", "views", "books.html");
 	const bunFile = file(path);
 
 	if (!bunFile) {
-		return new Response("Audiobookshelf page not found", {
+		return new Response("Books page not found", {
 			status: 404,
 			headers: { "Content-Type": "text/html" },
 		});
