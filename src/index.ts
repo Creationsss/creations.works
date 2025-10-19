@@ -2,9 +2,9 @@ import { echo } from "@atums/echo";
 
 import { verifyRequiredVariables } from "#environment";
 import { serverHandler } from "#server";
-import { startPfpCache } from "#services/profile-picture";
-import { startProjectsCache } from "#services/gitlab-projects";
 import { startBooksCache } from "#services/audiobookshelf-stats";
+import { startProjectsCache } from "#services/gitlab-projects";
+import { startPfpCache } from "#services/profile-picture";
 import { startTimezoneCache } from "#services/timezonedb";
 
 async function main(): Promise<void> {
