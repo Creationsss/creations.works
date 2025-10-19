@@ -208,7 +208,8 @@ function renderAudiobookshelfStats(data) {
 				(progress) =>
 					!progress.isFinished &&
 					progress.progress > 0 &&
-					!progress.hideFromContinueListening,
+					!progress.hideFromContinueListening &&
+					data.items[progress.libraryItemId],
 			)
 			.sort((a, b) => b.lastUpdate - a.lastUpdate)
 			.slice(0, 5);
@@ -217,7 +218,6 @@ function renderAudiobookshelfStats(data) {
 		currentlyReading = inProgressItems
 			.map((progressItem) => {
 				const book = data.items[progressItem.libraryItemId];
-				if (!book) return null;
 
 				const title = book.mediaMetadata?.title || "Unknown Title";
 				if (seenTitles.has(title)) return null;
