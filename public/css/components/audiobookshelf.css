@@ -326,16 +326,16 @@
 
 .author-description,
 .book-description {
-	position: absolute;
-	top: 100%;
-	left: -1px;
-	right: -1px;
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
 	background: var(--bg-secondary);
 	border: 1px solid var(--border-secondary);
-	border-top: 1px solid var(--border-secondary);
+	border-bottom: none;
 	padding: var(--spacing-md);
 	max-height: 0;
-	overflow: hidden;
+	overflow-y: auto;
 	transition:
 		max-height 0.3s ease,
 		opacity 0.3s ease;
@@ -345,7 +345,7 @@
 	z-index: 1000;
 	opacity: 0;
 	visibility: hidden;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .author-description::-webkit-scrollbar,
@@ -369,12 +369,11 @@
 	background: var(--text-secondary);
 }
 
-.author-item:hover .author-description,
-.reading-item:hover .book-description {
-	max-height: 200px;
+.book-description.show,
+.author-description.show {
+	max-height: calc(100vh - 200px);
 	opacity: 1;
 	visibility: visible;
-	overflow-y: auto;
 }
 
 .author-item:hover,

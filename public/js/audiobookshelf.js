@@ -561,6 +561,7 @@ function renderAudiobookshelfStats(data) {
 let bookDescriptionTimeout;
 let currentlyReadingBooks = [];
 
+// biome-ignore lint/correctness/noUnusedVariables: Called from HTML onmouseenter attribute
 function loadBookDescription(bookElement) {
 	const bookId = bookElement.dataset.bookId;
 	if (!bookId) return;
@@ -577,6 +578,7 @@ function loadBookDescription(bookElement) {
 		<div class="skeleton-line skeleton short"></div>
 	`;
 	descriptionDiv.style.display = "block";
+	descriptionDiv.classList.add("show");
 
 	bookDescriptionTimeout = setTimeout(() => {
 		const bookData = currentlyReadingBooks.find((book) => book.id === bookId);
@@ -589,16 +591,23 @@ function loadBookDescription(bookElement) {
 	}, 300);
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Called from HTML onmouseleave attribute
 function clearBookTimeout() {
 	clearTimeout(bookDescriptionTimeout);
 	const descriptionDivs = document.querySelectorAll(".book-description");
 	descriptionDivs.forEach((div) => {
-		div.style.display = "none";
-		div.innerHTML = "";
+		div.classList.remove("show");
+		setTimeout(() => {
+			if (!div.classList.contains("show")) {
+				div.style.display = "none";
+				div.innerHTML = "";
+			}
+		}, 300);
 	});
 	removeDimmingOverlay();
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Called from HTML oninput attribute
 function filterBooks() {
 	const searchInput = document.getElementById("book-search-input");
 	const booksGrid = document.getElementById("all-books-grid");
@@ -648,9 +657,5 @@ function removeDimmingOverlay() {
 		}, 300);
 	}
 }
-
-window.loadBookDescription = loadBookDescription;
-window.clearBookTimeout = clearBookTimeout;
-window.filterBooks = filterBooks;
 
 document.addEventListener("DOMContentLoaded", updateAudiobookshelfStats);
