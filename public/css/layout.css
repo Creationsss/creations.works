@@ -97,20 +97,14 @@
 	text-decoration: none;
 }
 
-.project-stat img {
+.project-stat svg {
 	width: 14px;
 	height: 14px;
-	filter: brightness(0) saturate(100%) invert(60%) sepia(10%) saturate(400%)
-		hue-rotate(180deg);
+	flex-shrink: 0;
 }
 
 .project-stat:hover {
 	color: var(--accent-primary);
-}
-
-.project-stat:hover img {
-	filter: brightness(0) saturate(100%) invert(50%) sepia(60%) saturate(500%)
-		hue-rotate(260deg);
 }
 
 .project-links {

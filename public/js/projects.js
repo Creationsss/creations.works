@@ -42,31 +42,26 @@ async function loadProjects() {
 			const statsDiv = document.createElement("div");
 			statsDiv.className = "project-stats";
 
+			const starSVG =
+				'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>';
+			const forkSVG =
+				'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/></svg>';
+			const issuesSVG =
+				'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"/></svg>';
+
 			const starsSpan = document.createElement("span");
 			starsSpan.className = "project-stat";
-			const starIcon = document.createElement("img");
-			starIcon.src = "/public/assets/icons/star.svg";
-			starIcon.alt = "Stars";
-			starsSpan.appendChild(starIcon);
-			starsSpan.appendChild(document.createTextNode(project.stats.stars));
+			starsSpan.innerHTML = `${starSVG}<span>${project.stats.stars}</span>`;
 			statsDiv.appendChild(starsSpan);
 
 			const forksSpan = document.createElement("span");
 			forksSpan.className = "project-stat";
-			const forkIcon = document.createElement("img");
-			forkIcon.src = "/public/assets/icons/fork.svg";
-			forkIcon.alt = "Forks";
-			forksSpan.appendChild(forkIcon);
-			forksSpan.appendChild(document.createTextNode(project.stats.forks));
+			forksSpan.innerHTML = `${forkSVG}<span>${project.stats.forks}</span>`;
 			statsDiv.appendChild(forksSpan);
 
 			const issuesSpan = document.createElement("span");
 			issuesSpan.className = "project-stat";
-			const issuesIcon = document.createElement("img");
-			issuesIcon.src = "/public/assets/icons/issues.svg";
-			issuesIcon.alt = "Issues";
-			issuesSpan.appendChild(issuesIcon);
-			issuesSpan.appendChild(document.createTextNode(project.stats.issues));
+			issuesSpan.innerHTML = `${issuesSVG}<span>${project.stats.issues}</span>`;
 			statsDiv.appendChild(issuesSpan);
 
 			headerDiv.appendChild(statsDiv);

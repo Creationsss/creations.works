@@ -1,5 +1,15 @@
 import { echo } from "@atums/echo";
 import { audiobookshelf } from "#environment";
+import { normalizeUrl } from "#utils/url";
+
+export type BooksData = {
+	totalTime: number;
+	totalItems: number;
+	totalBooks: number;
+	libraries: unknown[];
+	items: Record<string, unknown>;
+	[key: string]: unknown;
+};
 
 let cachedBooks: object | null = null;
 
@@ -12,9 +22,7 @@ async function fetchAndCacheBooks() {
 	try {
 		echo.debug("Fetching books from Audiobookshelf...");
 
-		const baseUrl = audiobookshelf.url.startsWith("http")
-			? audiobookshelf.url
-			: `https://${audiobookshelf.url}`;
+		const baseUrl = normalizeUrl(audiobookshelf.url);
 
 		const headers = { Authorization: `Bearer ${audiobookshelf.token}` };
 

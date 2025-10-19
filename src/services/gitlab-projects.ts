@@ -1,30 +1,32 @@
 import { echo } from "@atums/echo";
+import { API } from "#constants";
 import { gitlab } from "#environment";
+import { normalizeUrl, removeTrailingSlash } from "#utils/url";
+import { CachedService } from "./base-cache";
 
-let cachedProjects: object | null = null;
+export type ProjectsData = {
+	projects: ProjectResponse[];
+};
 
-async function fetchAndCacheProjects() {
-	if (!gitlab.instanceUrl || !gitlab.token || gitlab.namespaces.length === 0) {
-		echo.warn("GitLab not configured, skipping projects cache");
-		return;
-	}
-
-	try {
-		echo.debug("Fetching projects from GitLab...");
-
-		let baseUrl = gitlab.instanceUrl;
-
-		if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
-			baseUrl = `https://${baseUrl}`;
+class GitLabProjectsService extends CachedService<ProjectsData> {
+	protected async fetchData(): Promise<ProjectsData | null> {
+		if (
+			!gitlab.instanceUrl ||
+			!gitlab.token ||
+			gitlab.namespaces.length === 0
+		) {
+			echo.warn("GitLab not configured, skipping projects cache");
+			return null;
 		}
 
-		baseUrl = baseUrl.replace(/\/$/, "");
+		let baseUrl = normalizeUrl(gitlab.instanceUrl);
+		baseUrl = removeTrailingSlash(baseUrl);
 
 		const token = gitlab.token as string;
 
 		const projectPromises = gitlab.namespaces.map(async (namespace) => {
 			const namespaceType = namespace.type === "group" ? "groups" : "users";
-			const apiUrl = `${baseUrl}/api/v4/${namespaceType}/${encodeURIComponent(namespace.id)}/projects?per_page=100&order_by=last_activity_at&sort=desc`;
+			const apiUrl = `${baseUrl}/api/v4/${namespaceType}/${encodeURIComponent(namespace.id)}/projects?per_page=${API.GITLAB_ITEMS_PER_PAGE}&order_by=last_activity_at&sort=desc`;
 
 			const response = await fetch(apiUrl, {
 				headers: {
@@ -69,7 +71,7 @@ async function fetchAndCacheProjects() {
 						const languages: Record<string, number> = await langResponse.json();
 						const topLanguages = Object.keys(languages)
 							.sort((a, b) => (languages[b] ?? 0) - (languages[a] ?? 0))
-							.slice(0, 3);
+							.slice(0, API.GITLAB_TOP_LANGUAGES);
 						return { ...project, detectedLanguages: topLanguages };
 					}
 				} catch {}
@@ -107,23 +109,28 @@ async function fetchAndCacheProjects() {
 			},
 		);
 
-		cachedProjects = { projects: formattedProjects };
-		echo.debug(
-			`Projects cached successfully (${formattedProjects.length} projects)`,
-		);
-	} catch (error) {
-		echo.error("Failed to fetch projects from GitLab:", error);
+		return { projects: formattedProjects };
+	}
+
+	protected getServiceName(): string {
+		return "GitLab projects";
+	}
+
+	protected logCacheSuccess(): void {
+		if (this.cache) {
+			echo.debug(
+				`Projects cached successfully (${this.cache.projects.length} projects)`,
+			);
+		}
 	}
 }
 
-function getCachedProjects(): object | null {
-	return cachedProjects;
+const gitLabProjectsService = new GitLabProjectsService();
+
+export function getCachedProjects(): ProjectsData | null {
+	return gitLabProjectsService.getCache();
 }
 
-function startProjectsCache() {
-	fetchAndCacheProjects();
-
-	setInterval(fetchAndCacheProjects, 60 * 60 * 1000);
+export function startProjectsCache(): void {
+	gitLabProjectsService.start();
 }
-
-export { getCachedProjects, startProjectsCache };

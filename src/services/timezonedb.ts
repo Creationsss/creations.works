@@ -1,21 +1,21 @@
 import { echo } from "@atums/echo";
 import { timezoneDB } from "#environment";
+import { normalizeUrl } from "#utils/url";
+import { CachedService } from "./base-cache";
 
-let cachedTimezone: object | null = null;
+export type TimezoneData = {
+	timezone: string;
+	[key: string]: unknown;
+};
 
-async function fetchAndCacheTimezone() {
-	if (!timezoneDB.url || !timezoneDB.id) {
-		echo.warn("TimezoneDB not configured, skipping timezone cache");
-		return;
-	}
+class TimezoneService extends CachedService<TimezoneData> {
+	protected async fetchData(): Promise<TimezoneData | null> {
+		if (!timezoneDB.url || !timezoneDB.id) {
+			echo.warn("TimezoneDB not configured, skipping timezone cache");
+			return null;
+		}
 
-	try {
-		echo.debug("Fetching timezone data from TimezoneDB...");
-
-		const baseUrl = timezoneDB.url.startsWith("http")
-			? timezoneDB.url
-			: `https://${timezoneDB.url}`;
-
+		const baseUrl = normalizeUrl(timezoneDB.url);
 		const apiUrl = `${baseUrl}/get?id=${encodeURIComponent(timezoneDB.id)}`;
 
 		const response = await fetch(apiUrl);
@@ -24,23 +24,20 @@ async function fetchAndCacheTimezone() {
 			throw new Error(`API responded with status ${response.status}`);
 		}
 
-		const data = await response.json();
+		return await response.json();
+	}
 
-		cachedTimezone = data;
-		echo.debug("Timezone data cached successfully");
-	} catch (error) {
-		echo.error("Failed to fetch timezone data:", error);
+	protected getServiceName(): string {
+		return "timezone data";
 	}
 }
 
-function getCachedTimezone(): object | null {
-	return cachedTimezone;
+const timezoneService = new TimezoneService();
+
+export function getCachedTimezone(): TimezoneData | null {
+	return timezoneService.getCache();
 }
 
-function startTimezoneCache() {
-	fetchAndCacheTimezone();
-
-	setInterval(fetchAndCacheTimezone, 60 * 60 * 1000);
+export function startTimezoneCache(): void {
+	timezoneService.start();
 }
-
-export { getCachedTimezone, startTimezoneCache };

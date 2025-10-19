@@ -1,0 +1,82 @@
+export const TIME = {
+	MS_PER_SECOND: 1000,
+	MS_PER_MINUTE: 60 * 1000,
+	MS_PER_HOUR: 60 * 60 * 1000,
+	MS_PER_DAY: 24 * 60 * 60 * 1000,
+	MS_PER_YEAR: 365 * 24 * 60 * 60 * 1000,
+	SECONDS_PER_MINUTE: 60,
+	SECONDS_PER_HOUR: 3600,
+	SECONDS_PER_DAY: 86400,
+	DAYS_PER_MONTH: 30,
+	HOURS_PER_DAY: 24,
+} as const;
+
+export const CACHE = {
+	INTERVAL: 60 * 60 * 1000,
+	POLL_INTERVAL: 50,
+} as const;
+
+export const HTTP_STATUS = {
+	SWITCHING_PROTOCOLS: 101,
+	OK: 200,
+	NOT_FOUND: 404,
+	METHOD_NOT_ALLOWED: 405,
+	NOT_ACCEPTABLE: 406,
+	INTERNAL_SERVER_ERROR: 500,
+	SERVICE_UNAVAILABLE: 503,
+} as const;
+
+export const CONTENT_TYPE = {
+	HTML: "text/html",
+	JSON: "application/json",
+	PLAIN: "text/plain",
+	PNG: "image/png",
+	OCTET_STREAM: "application/octet-stream",
+} as const;
+
+export const CACHE_CONTROL = {
+	ONE_HOUR: "public, max-age=3600",
+	ONE_MINUTE: "public, max-age=60",
+} as const;
+
+export const AUDIOBOOK = {
+	FINISHED_PROGRESS: 95,
+	IN_PROGRESS_PROGRESS: 90,
+	FINISHED_HOURS: 20,
+	IN_PROGRESS_HOURS: 8,
+	ESTIMATED_DURATION_HOURS: 12,
+	RECENT_ITEMS_LIMIT: 5,
+	RECENT_SESSIONS_LIMIT: 8,
+} as const;
+
+export const UI = {
+	DESCRIPTION_DELAY: 300,
+	TIMEZONE_UPDATE_INTERVAL: 1000,
+	MAX_SNOWFLAKES: 60,
+	SNOWFLAKE_CREATION_INTERVAL: 80,
+	SNOWFLAKE_SIZE_MIN: 2,
+	SNOWFLAKE_SIZE_MAX: 5,
+	SNOWFLAKE_SPEED_MIN: 2,
+	SNOWFLAKE_SPEED_MAX: 5,
+	SNOWFLAKE_REPEL_DISTANCE: 30,
+	TOTAL_CATS: 10,
+	CAT_LIFETIME: 3000,
+	CAT_DELAY: 400,
+	CAT_COUNT_MIN: 3,
+	CAT_COUNT_MAX: 5,
+	CAT_SPAWN_OFFSET: 100,
+	CAT_SPAWN_RANGE: 200,
+} as const;
+
+export const API = {
+	GITLAB_ITEMS_PER_PAGE: 100,
+	GITLAB_TOP_LANGUAGES: 3,
+} as const;
+
+export const ERROR_MESSAGES = {
+	NOT_AVAILABLE: "not available yet",
+	NOT_FOUND: "Not Found",
+	INTERNAL_SERVER_ERROR: "Internal Server Error",
+	METHOD_NOT_ALLOWED: "Method Not Allowed",
+	NOT_ACCEPTABLE: "Not Acceptable",
+} as const;

@@ -1,26 +1,12 @@
-import { resolve } from "node:path";
-import { file } from "bun";
+import { CONTENT_TYPE } from "#constants";
+import { createHTMLRouteHandler } from "#utils/route-handlers";
 
 const routeDef: RouteDef = {
 	method: "GET",
 	accepts: "*/*",
-	returns: "text/html",
+	returns: CONTENT_TYPE.HTML,
 };
 
-async function handler(): Promise<Response> {
-	const path = resolve("public", "views", "books.html");
-	const bunFile = file(path);
-
-	if (!bunFile) {
-		return new Response("Books page not found", {
-			status: 404,
-			headers: { "Content-Type": "text/html" },
-		});
-	}
-
-	return new Response(bunFile.stream(), {
-		headers: { "Content-Type": "text/html" },
-	});
-}
+const handler = createHTMLRouteHandler("books.html");
 
 export { handler, routeDef };

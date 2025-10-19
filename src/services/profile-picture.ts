@@ -1,10 +1,8 @@
 import { echo } from "@atums/echo";
+import { CachedService } from "./base-cache";
 
-let cachedImageBuffer: ArrayBuffer | null = null;
-
-async function fetchAndCacheImage() {
-	try {
-		echo.debug("Fetching profile picture from GitLab...");
+class ProfilePictureService extends CachedService<ArrayBuffer> {
+	protected async fetchData(): Promise<ArrayBuffer | null> {
 		const imageUrl =
 			"https://heliopolis.live/creations/creations/-/raw/main/assets/pfp.png";
 
@@ -14,24 +12,27 @@ async function fetchAndCacheImage() {
 			throw new Error(`Failed to fetch image: ${response.status}`);
 		}
 
-		const imageBuffer = await response.arrayBuffer();
-		cachedImageBuffer = imageBuffer;
-		echo.debug(
-			`Profile picture cached successfully (${(imageBuffer.byteLength / 1024).toFixed(2)} KB)`,
-		);
-	} catch (error) {
-		echo.error("Failed to fetch profile picture:", error);
+		return await response.arrayBuffer();
+	}
+
+	protected getServiceName(): string {
+		return "profile picture";
+	}
+
+	protected logCacheSuccess(): void {
+		if (this.cache) {
+			const sizeKB = (this.cache.byteLength / 1024).toFixed(2);
+			echo.debug(`Profile picture cached successfully (${sizeKB} KB)`);
+		}
 	}
 }
 
-function getCachedImage(): ArrayBuffer | null {
-	return cachedImageBuffer;
+const profilePictureService = new ProfilePictureService();
+
+export function getCachedImage(): ArrayBuffer | null {
+	return profilePictureService.getCache();
 }
 
-function startPfpCache() {
-	fetchAndCacheImage();
-
-	setInterval(fetchAndCacheImage, 60 * 60 * 1000);
+export function startPfpCache(): void {
+	profilePictureService.start();
 }
-
-export { getCachedImage, startPfpCache };

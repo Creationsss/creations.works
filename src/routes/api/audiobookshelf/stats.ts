@@ -1,22 +1,16 @@
+import { CONTENT_TYPE } from "#constants";
 import { getCachedBooks } from "#services/audiobookshelf-stats";
+import { handleCachedJSONResponse } from "#utils/route-handlers";
 
 const routeDef: RouteDef = {
 	method: "GET",
 	accepts: "*/*",
-	returns: "application/json",
+	returns: CONTENT_TYPE.JSON,
 };
 
 async function handler(): Promise<Response> {
 	const cachedBooks = getCachedBooks();
-
-	if (!cachedBooks) {
-		return Response.json(
-			{ error: "Books stats not available yet" },
-			{ status: 503 },
-		);
-	}
-
-	return Response.json(cachedBooks);
+	return handleCachedJSONResponse(cachedBooks, "Books stats");
 }
 
 export { handler, routeDef };

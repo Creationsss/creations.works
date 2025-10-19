@@ -1,26 +1,21 @@
+import { CACHE_CONTROL, CONTENT_TYPE } from "#constants";
 import { getCachedImage } from "#services/profile-picture";
+import { handleCachedBinaryResponse } from "#utils/route-handlers";
 
 const routeDef: RouteDef = {
 	method: "GET",
 	accepts: "*/*",
-	returns: "image/png",
+	returns: CONTENT_TYPE.PNG,
 };
 
 async function handler(): Promise<Response> {
 	const cachedImageBuffer = getCachedImage();
-
-	if (!cachedImageBuffer) {
-		return new Response("Profile picture not available yet", {
-			status: 503,
-			headers: { "Content-Type": "text/plain" },
-		});
-	}
-
-	return new Response(cachedImageBuffer, {
-		headers: {
-			"Content-Type": "image/png",
-		},
-	});
+	return handleCachedBinaryResponse(
+		cachedImageBuffer,
+		"Profile picture",
+		CONTENT_TYPE.PNG,
+		CACHE_CONTROL.ONE_HOUR,
+	);
 }
 
 export { handler, routeDef };

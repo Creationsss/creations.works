@@ -1,22 +1,16 @@
+import { CONTENT_TYPE } from "#constants";
 import { getCachedTimezone } from "#services/timezonedb";
+import { handleCachedJSONResponse } from "#utils/route-handlers";
 
 const routeDef: RouteDef = {
 	method: "GET",
 	accepts: "*/*",
-	returns: "application/json",
+	returns: CONTENT_TYPE.JSON,
 };
 
 async function handler(): Promise<Response> {
 	const cachedTimezone = getCachedTimezone();
-
-	if (!cachedTimezone) {
-		return Response.json(
-			{ error: "Timezone data not available yet" },
-			{ status: 503 },
-		);
-	}
-
-	return Response.json(cachedTimezone);
+	return handleCachedJSONResponse(cachedTimezone, "Timezone data");
 }
 
 export { handler, routeDef };

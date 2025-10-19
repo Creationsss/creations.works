@@ -1,3 +1,5 @@
+import { POLL_INTERVAL, UI } from "./utils/constants.js";
+
 let timezoneData = null;
 let timezoneError = null;
 
@@ -64,7 +66,7 @@ function updateTimezoneInfo() {
 		return;
 	}
 
-	setTimeout(updateTimezoneInfo, 50);
+	setTimeout(updateTimezoneInfo, POLL_INTERVAL);
 }
 
 function renderTimezoneWithTime(data) {
@@ -95,7 +97,13 @@ function renderTimezoneWithTime(data) {
 	container.innerHTML = realContentHTML;
 
 	updateCurrentTime();
-	setInterval(updateCurrentTime, 1000);
+	if (window.timezoneUpdateInterval) {
+		clearInterval(window.timezoneUpdateInterval);
+	}
+	window.timezoneUpdateInterval = setInterval(
+		updateCurrentTime,
+		UI.TIMEZONE_UPDATE_INTERVAL,
+	);
 }
 
 function updateCurrentTime() {

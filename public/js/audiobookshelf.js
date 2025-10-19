@@ -561,7 +561,6 @@ function renderAudiobookshelfStats(data) {
 let bookDescriptionTimeout;
 let currentlyReadingBooks = [];
 
-// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function loadBookDescription(bookElement) {
 	const bookId = bookElement.dataset.bookId;
 	if (!bookId) return;
@@ -590,7 +589,6 @@ function loadBookDescription(bookElement) {
 	}, 300);
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function clearBookTimeout() {
 	clearTimeout(bookDescriptionTimeout);
 	const descriptionDivs = document.querySelectorAll(".book-description");
@@ -601,7 +599,6 @@ function clearBookTimeout() {
 	removeDimmingOverlay();
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function filterBooks() {
 	const searchInput = document.getElementById("book-search-input");
 	const booksGrid = document.getElementById("all-books-grid");
@@ -651,5 +648,9 @@ function removeDimmingOverlay() {
 		}, 300);
 	}
 }
+
+window.loadBookDescription = loadBookDescription;
+window.clearBookTimeout = clearBookTimeout;
+window.filterBooks = filterBooks;
 
 document.addEventListener("DOMContentLoaded", updateAudiobookshelfStats);
