@@ -1,4 +1,6 @@
 type QueryParams = Record<string, string>;
+type Query = Record<string, string>;
+type Params = Record<string, string>;
 
 interface ExtendedRequest extends Request {
 	startPerf: number;
@@ -21,16 +23,26 @@ type RouteDef = {
 		| "blob";
 };
 
+type WebSocketData = {
+	routeModule?: RouteModule;
+	params?: Params;
+	query?: Query;
+};
+
 type Handler = (
 	request: ExtendedRequest,
-	server: Server,
+	server: Server<WebSocketData>,
 ) => Promise<Response> | Response;
 
 type WebSocketHandler = {
-	message?: (ws: ServerWebSocket, message: string) => void;
-	open?: (ws: ServerWebSocket) => void;
-	close?: (ws: ServerWebSocket, code: number, reason: string) => void;
-	drain?: (ws: ServerWebSocket) => void;
+	message?: (ws: ServerWebSocket<WebSocketData>, message: string) => void;
+	open?: (ws: ServerWebSocket<WebSocketData>) => void;
+	close?: (
+		ws: ServerWebSocket<WebSocketData>,
+		code: number,
+		reason: string,
+	) => void;
+	drain?: (ws: ServerWebSocket<WebSocketData>) => void;
 };
 
 type RouteModule = {

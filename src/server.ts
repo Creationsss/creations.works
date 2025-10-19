@@ -26,7 +26,7 @@ class ServerHandler {
 	}
 
 	public initialize(): void {
-		const server: Server = Bun.serve({
+		const server: Server<WebSocketData> = Bun.serve({
 			port: this.port,
 			hostname: this.host,
 			fetch: this.handleRequest.bind(this),
@@ -123,7 +123,7 @@ class ServerHandler {
 	}
 
 	private handleWebSocketMessage(
-		ws: ServerWebSocket<{ routeModule?: RouteModule }>,
+		ws: ServerWebSocket<WebSocketData>,
 		message: string,
 	): void {
 		const data = ws.data;
@@ -132,9 +132,7 @@ class ServerHandler {
 		}
 	}
 
-	private handleWebSocketOpen(
-		ws: ServerWebSocket<{ routeModule?: RouteModule }>,
-	): void {
+	private handleWebSocketOpen(ws: ServerWebSocket<WebSocketData>): void {
 		const data = ws.data;
 		if (data?.routeModule?.websocket?.open) {
 			data.routeModule.websocket.open(ws);
@@ -142,7 +140,7 @@ class ServerHandler {
 	}
 
 	private handleWebSocketClose(
-		ws: ServerWebSocket<{ routeModule?: RouteModule }>,
+		ws: ServerWebSocket<WebSocketData>,
 		code: number,
 		reason: string,
 	): void {
@@ -154,7 +152,7 @@ class ServerHandler {
 
 	private async handleRequest(
 		request: Request,
-		server: Server,
+		server: Server<WebSocketData>,
 	): Promise<Response> {
 		const extendedRequest: ExtendedRequest = request as ExtendedRequest;
 		extendedRequest.startPerf = performance.now();
