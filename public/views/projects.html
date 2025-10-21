@@ -1,41 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="color-scheme" content="dark" />
+		<title>creations.works</title>
 
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="color-scheme" content="dark">
-	<title>creations</title>
+		<link rel="stylesheet" href="/public/css/style.css" />
+		<link rel="stylesheet" href="/public/css/layout.css" />
+		<link rel="stylesheet" href="/public/css/typography.css" />
 
-	<link rel="stylesheet" href="/public/css/style.css">
-	<link rel="stylesheet" href="/public/css/layout.css">
-	<link rel="stylesheet" href="/public/css/typography.css">
+		<script type="module" src="/public/js/projects.js" defer></script>
+		<script src="/public/js/sticky-back-button.js" defer></script>
+		<script
+			async
+			src="https://offen.atums.world/script.js"
+			data-account-id="9431083a-7a7a-4fb0-b826-88d95ff5fae4"
+		></script>
+	</head>
 
-	<script type="module" src="/public/js/projects.js" defer></script>
-	<script async src="https://offen.atums.world/script.js" data-account-id="9431083a-7a7a-4fb0-b826-88d95ff5fae4"></script>
-</head>
+	<body>
+		<div class="back-to-home">
+			<button class="back-button" onclick="window.location.href='/'">
+				<svg
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="m15 18-6-6 6-6" />
+				</svg>
+				Return home
+			</button>
+		</div>
 
-<body>
-	<div class="back-to-home">
-		<button class="back-button" onclick="window.location.href='/'">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-				stroke-linecap="round" stroke-linejoin="round">
-				<path d="m15 18-6-6 6-6" />
-			</svg>
-			Return home
-		</button>
-	</div>
-
-	<main class="main">
-		<section class="projects section">
-			<div class="container">
-				<div id="projects-container">
-					<div class="loading-spinner">Loading projects...</div>
+		<main class="main">
+			<section class="projects section">
+				<div class="container">
+					<div id="projects-container">
+						<div class="loading-spinner">Loading projects...</div>
+					</div>
 				</div>
-
-			</div>
-		</section>
-	</main>
-</body>
-
+			</section>
+		</main>
+	</body>
 </html>

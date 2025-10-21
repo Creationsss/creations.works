@@ -7,6 +7,7 @@ import {
 	type Server,
 	type ServerWebSocket,
 } from "bun";
+import { CONTENT_TYPE, HTTP_STATUS } from "#constants";
 import { environment } from "#environment";
 import { reqLoggerIgnores } from "#environment/constants";
 
@@ -383,14 +384,24 @@ class ServerHandler {
 				);
 			}
 		} else {
-			response = Response.json(
-				{
-					success: false,
-					code: 404,
-					error: "Not Found",
-				},
-				{ status: 404 },
-			);
+			const notFoundPath = resolve("public", "views", "404.html");
+			const notFoundFile = Bun.file(notFoundPath);
+
+			if (await notFoundFile.exists()) {
+				response = new Response(notFoundFile.stream(), {
+					status: HTTP_STATUS.NOT_FOUND,
+					headers: { "Content-Type": CONTENT_TYPE.HTML },
+				});
+			} else {
+				response = Response.json(
+					{
+						success: false,
+						code: HTTP_STATUS.NOT_FOUND,
+						error: "Not Found",
+					},
+					{ status: HTTP_STATUS.NOT_FOUND },
+				);
+			}
 		}
 
 		this.logRequest(extendedRequest, response, ip);

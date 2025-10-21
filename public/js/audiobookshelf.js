@@ -591,7 +591,6 @@ function loadBookDescription(bookElement) {
 	}, 300);
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Called from HTML onmouseleave attribute
 function clearBookTimeout() {
 	clearTimeout(bookDescriptionTimeout);
 	const descriptionDivs = document.querySelectorAll(".book-description");
@@ -657,5 +656,17 @@ function removeDimmingOverlay() {
 		}, 300);
 	}
 }
+
+document.addEventListener("click", (e) => {
+	const descriptionDiv = document.querySelector(".book-description.show");
+	if (descriptionDiv) {
+		const bookItem = e.target.closest(".reading-item");
+		const clickedDescription = e.target.closest(".book-description");
+
+		if (!bookItem && !clickedDescription) {
+			clearBookTimeout();
+		}
+	}
+});
 
 document.addEventListener("DOMContentLoaded", updateAudiobookshelfStats);

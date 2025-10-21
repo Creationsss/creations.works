@@ -15,12 +15,17 @@
 	font-size: var(--font-size-sm);
 	font-family: inherit;
 	cursor: pointer;
-	transition: color var(--transition-fast);
+	transition: all var(--transition-fast);
 	display: inline-flex;
 	align-items: center;
 	gap: var(--spacing-xs);
 	padding: var(--spacing-xs) var(--spacing-sm);
 	border-radius: 4px;
+}
+
+.back-button.sticky {
+	position: fixed;
+	z-index: 100;
 }
 
 .back-button:hover {
@@ -569,5 +574,27 @@
 
 	.contact-link.large {
 		padding: var(--spacing-lg);
+	}
+
+	.back-to-home {
+		padding: var(--spacing-sm);
+	}
+
+	.back-button {
+		font-size: var(--font-size-xs);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		gap: 4px;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-primary);
+	}
+
+	.back-button.sticky {
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-primary);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	}
+
+	.back-button svg {
+		display: none;
 	}
 }
