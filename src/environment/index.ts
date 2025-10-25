@@ -44,6 +44,15 @@ const gitlab: GitLab = {
 	ignoreNames: process.env.GITLAB_IGNORE_NAMES
 		? process.env.GITLAB_IGNORE_NAMES.split(",").map((name) => name.trim())
 		: [],
+	externalProjects: process.env.EXTERNAL_PROJECTS
+		? process.env.EXTERNAL_PROJECTS.split(",")
+				.map((url) => url.trim())
+				.filter((url) => url.length > 0)
+				.map((url) => ({ url }))
+		: [],
+	featuredProjects: process.env.FEATURED_PROJECTS
+		? process.env.FEATURED_PROJECTS.split(",").map((name) => name.trim())
+		: [],
 };
 
 function verifyRequiredVariables(): void {

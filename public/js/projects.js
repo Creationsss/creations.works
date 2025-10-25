@@ -29,15 +29,27 @@ async function loadProjects() {
 
 		projects.forEach((project) => {
 			const projectDiv = document.createElement("div");
-			projectDiv.className = "project";
+			projectDiv.className = project.featured ? "project featured" : "project";
 
 			const headerDiv = document.createElement("div");
 			headerDiv.className = "project-header";
 
 			const title = document.createElement("h3");
 			title.textContent = project.name;
-			title.style.margin = "0";
 			headerDiv.appendChild(title);
+
+			const techDiv = document.createElement("div");
+			techDiv.className = "project-tech";
+
+			if (project.technologies && project.technologies.length > 0) {
+				project.technologies.forEach((tech) => {
+					const techTag = document.createElement("span");
+					techTag.className = `tech-tag ${tech.toLowerCase()}`;
+					techTag.textContent = tech;
+					techDiv.appendChild(techTag);
+				});
+			}
+			headerDiv.appendChild(techDiv);
 
 			const statsDiv = document.createElement("div");
 			statsDiv.className = "project-stats";
@@ -67,22 +79,11 @@ async function loadProjects() {
 			headerDiv.appendChild(statsDiv);
 			projectDiv.appendChild(headerDiv);
 
-			const description = document.createElement("p");
-			description.textContent = project.description;
-			projectDiv.appendChild(description);
-
-			const techDiv = document.createElement("div");
-			techDiv.className = "project-tech";
-
-			if (project.technologies && project.technologies.length > 0) {
-				project.technologies.forEach((tech) => {
-					const techTag = document.createElement("span");
-					techTag.className = `tech-tag ${tech.toLowerCase()}`;
-					techTag.textContent = tech;
-					techDiv.appendChild(techTag);
-				});
+			if (project.description && project.description.trim() !== "") {
+				const description = document.createElement("p");
+				description.textContent = project.description;
+				projectDiv.appendChild(description);
 			}
-			projectDiv.appendChild(techDiv);
 
 			const linksDiv = document.createElement("div");
 			linksDiv.className = "project-links";

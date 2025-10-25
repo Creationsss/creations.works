@@ -65,6 +65,27 @@ interface GitLabProject {
 	forks_count: number;
 	open_issues_count: number;
 	detectedLanguages?: string[];
+	namespace?: {
+		path: string;
+	};
+}
+
+interface GitHubRepository {
+	name: string;
+	full_name: string;
+	description: string | null;
+	html_url: string;
+	topics: string[];
+	created_at: string;
+	updated_at: string;
+	stargazers_count: number;
+	forks_count: number;
+	open_issues_count: number;
+	language: string | null;
+	owner: {
+		login: string;
+		type: string;
+	};
 }
 
 interface ProjectResponse {
@@ -78,4 +99,6 @@ interface ProjectResponse {
 		forks: number;
 		issues: number;
 	};
+	featured?: boolean;
+	namespace?: string;
 }

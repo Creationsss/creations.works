@@ -23,4 +23,9 @@ type GitLab = {
 		type: "user" | "group";
 	}>;
 	ignoreNames: string[];
+	externalProjects: Array<{
+		url: string;
+		featured?: boolean;
+	}>;
+	featuredProjects: string[];
 };

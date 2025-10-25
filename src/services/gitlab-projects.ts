@@ -10,106 +10,229 @@ export type ProjectsData = {
 
 class GitLabProjectsService extends CachedService<ProjectsData> {
 	protected async fetchData(): Promise<ProjectsData | null> {
-		if (
-			!gitlab.instanceUrl ||
-			!gitlab.token ||
-			gitlab.namespaces.length === 0
-		) {
-			echo.warn("GitLab not configured, skipping projects cache");
-			return null;
-		}
+		const allFormattedProjects: ProjectResponse[] = [];
 
-		let baseUrl = normalizeUrl(gitlab.instanceUrl);
-		baseUrl = removeTrailingSlash(baseUrl);
+		if (gitlab.instanceUrl && gitlab.token && gitlab.namespaces.length > 0) {
+			let baseUrl = normalizeUrl(gitlab.instanceUrl);
+			baseUrl = removeTrailingSlash(baseUrl);
 
-		const token = gitlab.token as string;
+			const token = gitlab.token as string;
 
-		const projectPromises = gitlab.namespaces.map(async (namespace) => {
-			const namespaceType = namespace.type === "group" ? "groups" : "users";
-			const apiUrl = `${baseUrl}/api/v4/${namespaceType}/${encodeURIComponent(namespace.id)}/projects?per_page=${API.GITLAB_ITEMS_PER_PAGE}&order_by=last_activity_at&sort=desc`;
+			const projectPromises = gitlab.namespaces.map(async (namespace) => {
+				const namespaceType = namespace.type === "group" ? "groups" : "users";
+				const apiUrl = `${baseUrl}/api/v4/${namespaceType}/${encodeURIComponent(namespace.id)}/projects?per_page=${API.GITLAB_ITEMS_PER_PAGE}&order_by=last_activity_at&sort=desc`;
 
-			const response = await fetch(apiUrl, {
-				headers: {
-					"PRIVATE-TOKEN": token,
-				},
+				const response = await fetch(apiUrl, {
+					headers: {
+						"PRIVATE-TOKEN": token,
+					},
+				});
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(
+						`GitLab API responded with status ${response.status}: ${errorText}`,
+					);
+				}
+
+				return (await response.json()) as GitLabProject[];
 			});
 
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(
-					`GitLab API responded with status ${response.status}: ${errorText}`,
-				);
-			}
+			const projectArrays = await Promise.all(projectPromises);
+			const allProjects: GitLabProject[] = projectArrays.flat();
 
-			return (await response.json()) as GitLabProject[];
-		});
+			allProjects.sort((a, b) => {
+				const dateA = new Date(a.last_activity_at).getTime();
+				const dateB = new Date(b.last_activity_at).getTime();
+				return dateB - dateA;
+			});
 
-		const projectArrays = await Promise.all(projectPromises);
-		const allProjects: GitLabProject[] = projectArrays.flat();
+			const projects = allProjects.filter(
+				(project) => !gitlab.ignoreNames.includes(project.name),
+			);
 
-		allProjects.sort((a, b) => {
-			const dateA = new Date(a.last_activity_at).getTime();
-			const dateB = new Date(b.last_activity_at).getTime();
-			return dateB - dateA;
-		});
+			const projectsWithLanguages = await Promise.all(
+				projects.map(async (project) => {
+					try {
+						const languagesUrl = `${baseUrl}/api/v4/projects/${project.id}/languages`;
+						const langResponse = await fetch(languagesUrl, {
+							headers: {
+								"PRIVATE-TOKEN": token,
+							},
+						});
 
-		const projects = allProjects.filter(
-			(project) => !gitlab.ignoreNames.includes(project.name),
-		);
+						if (langResponse.ok) {
+							const languages: Record<string, number> =
+								await langResponse.json();
+							const topLanguages = Object.keys(languages)
+								.sort((a, b) => (languages[b] ?? 0) - (languages[a] ?? 0))
+								.slice(0, API.GITLAB_TOP_LANGUAGES);
+							return { ...project, detectedLanguages: topLanguages };
+						}
+					} catch {}
+					return { ...project, detectedLanguages: [] };
+				}),
+			);
 
-		const projectsWithLanguages = await Promise.all(
-			projects.map(async (project) => {
-				try {
-					const languagesUrl = `${baseUrl}/api/v4/projects/${project.id}/languages`;
-					const langResponse = await fetch(languagesUrl, {
-						headers: {
-							"PRIVATE-TOKEN": token,
+			const formattedProjects: ProjectResponse[] = projectsWithLanguages.map(
+				(project) => {
+					const links: Array<{ text: string; url: string }> = [
+						{
+							text: "Source Code",
+							url: project.web_url,
 						},
-					});
+					];
 
-					if (langResponse.ok) {
-						const languages: Record<string, number> = await langResponse.json();
-						const topLanguages = Object.keys(languages)
-							.sort((a, b) => (languages[b] ?? 0) - (languages[a] ?? 0))
-							.slice(0, API.GITLAB_TOP_LANGUAGES);
-						return { ...project, detectedLanguages: topLanguages };
+					const technologies = [
+						...(project.topics || []),
+						...(project.detectedLanguages || []),
+					];
+					const uniqueTechnologies = [...new Set(technologies)];
+
+					const namespace = project.namespace?.path;
+					const displayName = namespace
+						? `${namespace}/${project.name}`
+						: project.name;
+					const isFeatured =
+						gitlab.featuredProjects.includes(project.name) ||
+						gitlab.featuredProjects.includes(displayName);
+
+					const result: ProjectResponse = {
+						name: displayName,
+						description: project.description || "",
+						sourceUrl: project.web_url,
+						technologies: uniqueTechnologies,
+						links,
+						stats: {
+							stars: project.star_count || 0,
+							forks: project.forks_count || 0,
+							issues: project.open_issues_count || 0,
+						},
+						featured: isFeatured,
+					};
+					if (namespace) {
+						result.namespace = namespace;
 					}
-				} catch {}
-				return { ...project, detectedLanguages: [] };
-			}),
-		);
+					return result;
+				},
+			);
 
-		const formattedProjects: ProjectResponse[] = projectsWithLanguages.map(
-			(project) => {
-				const links: Array<{ text: string; url: string }> = [
-					{
-						text: "Source Code",
-						url: project.web_url,
+			allFormattedProjects.push(...formattedProjects);
+		} else {
+			echo.warn("GitLab not configured, skipping GitLab projects");
+		}
+
+		if (gitlab.externalProjects.length > 0) {
+			echo.debug(
+				`Fetching ${gitlab.externalProjects.length} external projects...`,
+			);
+			const externalProjects = await this.fetchExternalProjects();
+			echo.debug(`Fetched ${externalProjects.length} external projects`);
+			allFormattedProjects.push(...externalProjects);
+		} else {
+			echo.debug("No external projects configured");
+		}
+
+		allFormattedProjects.sort((a, b) => {
+			if (a.featured && !b.featured) return -1;
+			if (!a.featured && b.featured) return 1;
+			return b.stats.stars - a.stats.stars;
+		});
+
+		return { projects: allFormattedProjects };
+	}
+
+	private async fetchExternalProjects(): Promise<ProjectResponse[]> {
+		const projects: ProjectResponse[] = [];
+
+		for (const extProject of gitlab.externalProjects) {
+			try {
+				echo.debug(`Processing external project: ${extProject.url}`);
+				const githubMatch = extProject.url.match(
+					/github\.com\/([^/]+)\/([^/]+)/,
+				);
+				if (!githubMatch || !githubMatch[1] || !githubMatch[2]) {
+					echo.warn(`Unsupported external project URL: ${extProject.url}`);
+					continue;
+				}
+
+				const owner = githubMatch[1];
+				const repo = githubMatch[2];
+				const cleanRepo = repo.replace(/\.git$/, "");
+
+				const apiUrl = `https://api.github.com/repos/${owner}/${cleanRepo}`;
+				echo.debug(`Fetching from GitHub API: ${apiUrl}`);
+				const response = await fetch(apiUrl, {
+					headers: {
+						Accept: "application/vnd.github.v3+json",
+						"User-Agent": "creations.works",
 					},
-				];
+				});
+
+				if (!response.ok) {
+					echo.warn(
+						`Failed to fetch GitHub project: ${extProject.url} (${response.status} ${response.statusText})`,
+					);
+					continue;
+				}
+
+				echo.debug(`Successfully fetched: ${owner}/${cleanRepo}`);
+
+				const data = (await response.json()) as GitHubRepository;
+
+				const languagesResponse = await fetch(`${apiUrl}/languages`, {
+					headers: {
+						Accept: "application/vnd.github.v3+json",
+						"User-Agent": "creations.works",
+					},
+				});
+
+				let detectedLanguages: string[] = [];
+				if (languagesResponse.ok) {
+					const languages: Record<string, number> =
+						await languagesResponse.json();
+					detectedLanguages = Object.keys(languages)
+						.sort((a, b) => (languages[b] ?? 0) - (languages[a] ?? 0))
+						.slice(0, API.GITLAB_TOP_LANGUAGES);
+				}
 
 				const technologies = [
-					...(project.topics || []),
-					...(project.detectedLanguages || []),
+					...(data.topics || []),
+					...(detectedLanguages || []),
 				];
 				const uniqueTechnologies = [...new Set(technologies)];
 
-				return {
-					name: project.name,
-					description: project.description || "No description available",
-					sourceUrl: project.web_url,
-					technologies: uniqueTechnologies,
-					links,
-					stats: {
-						stars: project.star_count || 0,
-						forks: project.forks_count || 0,
-						issues: project.open_issues_count || 0,
-					},
-				};
-			},
-		);
+				const displayName = data.full_name;
+				const isFeatured =
+					extProject.featured ||
+					gitlab.featuredProjects.includes(displayName) ||
+					gitlab.featuredProjects.includes(data.name);
 
-		return { projects: formattedProjects };
+				projects.push({
+					name: displayName,
+					description: data.description || "",
+					sourceUrl: data.html_url,
+					technologies: uniqueTechnologies,
+					links: [
+						{
+							text: "Source Code",
+							url: data.html_url,
+						},
+					],
+					stats: {
+						stars: data.stargazers_count || 0,
+						forks: data.forks_count || 0,
+						issues: data.open_issues_count || 0,
+					},
+					featured: isFeatured,
+					namespace: data.owner.login,
+				});
+			} catch (error) {
+				echo.warn(`Error fetching external project ${extProject.url}:`, error);
+			}
+		}
+
+		return projects;
 	}
 
 	protected getServiceName(): string {
