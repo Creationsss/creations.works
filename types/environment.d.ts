@@ -29,3 +29,7 @@ type GitLab = {
 	}>;
 	featuredProjects: string[];
 };
+
+type Gravatar = {
+	email: string | null;
+};

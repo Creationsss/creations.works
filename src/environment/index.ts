@@ -55,6 +55,10 @@ const gitlab: GitLab = {
 		: [],
 };
 
+const gravatar: Gravatar = {
+	email: process.env.GRAVATAR_EMAIL || null,
+};
+
 function verifyRequiredVariables(): void {
 	let hasError = false;
 
@@ -96,5 +100,6 @@ export {
 	audiobookshelf,
 	timezoneDB,
 	gitlab,
+	gravatar,
 	verifyRequiredVariables,
 };

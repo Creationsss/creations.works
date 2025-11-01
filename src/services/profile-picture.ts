@@ -1,10 +1,18 @@
 import { echo } from "@atums/echo";
+import { createHash } from "node:crypto";
+import { gravatar } from "#environment";
 import { CachedService } from "./base-cache";
 
 class ProfilePictureService extends CachedService<ArrayBuffer> {
 	protected async fetchData(): Promise<ArrayBuffer | null> {
-		const imageUrl =
-			"https://heliopolis.live/creations/creations/-/raw/main/assets/pfp.png";
+		if (!gravatar.email) {
+			throw new Error("GRAVATAR_EMAIL is not configured");
+		}
+
+		const hash = createHash("md5")
+			.update(gravatar.email.trim().toLowerCase())
+			.digest("hex");
+		const imageUrl = `https://www.gravatar.com/avatar/${hash}?s=512`;
 
 		const response = await fetch(imageUrl);
 
