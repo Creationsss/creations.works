@@ -24,40 +24,18 @@ const timezoneDB: TimezoneDB = {
 const gitlab: GitLab = {
 	instanceUrl: process.env.GITLAB_INSTANCE_URL || false,
 	token: process.env.GITLAB_TOKEN || null,
-	namespaces: (() => {
-		const namespaceIds = process.env.GITLAB_NAMESPACE_ID
-			? process.env.GITLAB_NAMESPACE_ID.split(",").map((id) => id.trim())
-			: [];
-		const namespaceTypes = process.env.GITLAB_NAMESPACE_TYPE
-			? process.env.GITLAB_NAMESPACE_TYPE.split(",").map((type) => type.trim())
-			: [];
-
-		if (namespaceIds.length === 0) {
-			return [];
-		}
-
-		return namespaceIds.map((id, index) => ({
-			id,
-			type: (namespaceTypes[index] as "user" | "group") || "user",
-		}));
-	})(),
-	ignoreNames: process.env.GITLAB_IGNORE_NAMES
-		? process.env.GITLAB_IGNORE_NAMES.split(",").map((name) => name.trim())
-		: [],
-	externalProjects: process.env.EXTERNAL_PROJECTS
-		? process.env.EXTERNAL_PROJECTS.split(",")
-				.map((url) => url.trim())
-				.filter((url) => url.length > 0)
-				.map((url) => ({ url }))
-		: [],
-	featuredProjects: process.env.FEATURED_PROJECTS
-		? process.env.FEATURED_PROJECTS.split(",").map((name) => name.trim())
-		: [],
 };
 
 const gravatar: Gravatar = {
 	email: process.env.GRAVATAR_EMAIL || null,
 };
+
+const projectLinks: ProjectLink[] = process.env.PROJECT_LINKS
+	? process.env.PROJECT_LINKS.split(",")
+			.map((url) => url.trim())
+			.filter((url) => url.length > 0)
+			.map((url) => ({ url }))
+	: [];
 
 function verifyRequiredVariables(): void {
 	let hasError = false;
@@ -74,12 +52,6 @@ function verifyRequiredVariables(): void {
 
 	if (gitlab.instanceUrl) {
 		joined.push("GITLAB_TOKEN");
-		if (gitlab.namespaces.length === 0) {
-			echo.error(
-				"GITLAB_NAMESPACE_ID is required when GITLAB_INSTANCE_URL is set",
-			);
-			hasError = true;
-		}
 	}
 
 	for (const key of joined) {
@@ -101,5 +73,6 @@ export {
 	timezoneDB,
 	gitlab,
 	gravatar,
+	projectLinks,
 	verifyRequiredVariables,
 };

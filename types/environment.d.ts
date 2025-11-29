@@ -18,18 +18,12 @@ type TimezoneDB = {
 type GitLab = {
 	instanceUrl: string | false;
 	token: string | null;
-	namespaces: Array<{
-		id: string;
-		type: "user" | "group";
-	}>;
-	ignoreNames: string[];
-	externalProjects: Array<{
-		url: string;
-		featured?: boolean;
-	}>;
-	featuredProjects: string[];
 };
 
 type Gravatar = {
 	email: string | null;
+};
+
+type ProjectLink = {
+	url: string;
 };
