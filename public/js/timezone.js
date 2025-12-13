@@ -134,11 +134,12 @@ function updateCurrentTime() {
 	}
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used in HTML template
 function toggleTimeFormat() {
 	is24HourFormat = !is24HourFormat;
 	localStorage.setItem("timezone24HourFormat", is24HourFormat.toString());
 	updateCurrentTime();
 }
+
+window.toggleTimeFormat = toggleTimeFormat;
 
 document.addEventListener("DOMContentLoaded", updateTimezoneInfo);
