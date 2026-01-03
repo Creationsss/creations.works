@@ -530,7 +530,7 @@ function filterAnime() {
 	animeItems.forEach((item) => {
 		const title = item.dataset.title || "";
 		if (title.includes(searchTerm)) {
-			item.style.display = "flex";
+			item.style.display = "";
 		} else {
 			item.style.display = "none";
 		}
