@@ -265,6 +265,7 @@ export function startMALCache(): void {
 	myAnimeListService.start();
 }
 
-export function reloadMALTokens(): void {
+export async function reloadMALTokens(): Promise<void> {
 	myAnimeListService.reloadTokens();
+	await myAnimeListService.refresh();
 }

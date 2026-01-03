@@ -113,7 +113,7 @@ async function handler(request: Request): Promise<Response> {
 		}
 		writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2));
 
-		reloadMALTokens();
+		await reloadMALTokens();
 		echo.info("MAL tokens saved and loaded successfully via OAuth callback");
 
 		return new Response(

@@ -31,6 +31,10 @@ export abstract class CachedService<T> {
 		return this.cache;
 	}
 
+	public async refresh(): Promise<void> {
+		await this.updateCache();
+	}
+
 	public start(): void {
 		this.updateCache();
 		this.intervalId = setInterval(() => this.updateCache(), CACHE.INTERVAL);
