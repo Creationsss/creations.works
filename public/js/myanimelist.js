@@ -37,15 +37,7 @@ function updateMALStats() {
 	const statsContainer = document.getElementById("mal-stats");
 
 	if (malError) {
-		if (statsContainer) {
-			statsContainer.innerHTML = `
-				<div class="error-message">
-					<h3>unable to load anime stats</h3>
-					<p>${malError}</p>
-				</div>
-			`;
-			statsContainer.style.opacity = "1";
-		}
+		window.location.href = "/";
 		return;
 	}
 

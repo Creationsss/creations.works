@@ -40,7 +40,9 @@ async function handler(request: Request): Promise<Response> {
 	}
 
 	const url = new URL(request.url);
-	const redirectUri = `${url.protocol}//${url.host}/api/mal/callback`;
+	const forwardedProto = request.headers.get("x-forwarded-proto");
+	const protocol = forwardedProto ? `${forwardedProto}:` : url.protocol;
+	const redirectUri = `${protocol}//${url.host}/api/mal/callback`;
 
 	const codeVerifier = generateCodeVerifier();
 	saveCodeVerifier(codeVerifier);
