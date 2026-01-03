@@ -85,11 +85,11 @@ function renderTimezoneWithTime(data) {
 		</div>
 		<div class="timezone-info">
 			<div class="timezone-location">
-				<span class="timezone-label">Timezone:</span>
+				<span class="timezone-label">timezone:</span>
 				<span class="timezone-value">${data.timezone}</span>
 			</div>
 			<div class="timezone-time" onclick="toggleTimeFormat()">
-				<span class="timezone-label">Current Time:</span>
+				<span class="timezone-label">current time:</span>
 				<span class="timezone-value" id="current-time">--:--</span>
 			</div>
 		</div>

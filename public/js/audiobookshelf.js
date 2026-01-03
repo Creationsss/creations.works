@@ -24,7 +24,7 @@ function updateAudiobookshelfStats() {
 		if (statsContainer) {
 			statsContainer.innerHTML = `
 				<div class="error-message">
-					<h3>Unable to load audiobook stats</h3>
+					<h3>unable to load audiobook stats</h3>
 					<p>${audiobookshelfError}</p>
 				</div>
 			`;
@@ -358,27 +358,27 @@ function renderAudiobookshelfStats(data) {
 		<div class="audiobook-grid main-stats">
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${totalDays}</span></span>
-				<span class="stat-label">Days of Listening</span>
+				<span class="stat-label">days of listening</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${completionRate}%</span></span>
-				<span class="stat-label">Completion Rate</span>
+				<span class="stat-label">completion rate</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${totalHours}h</span></span>
-				<span class="stat-label">Total Hours</span>
+				<span class="stat-label">total hours</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${finalBooksFinished}</span></span>
-				<span class="stat-label">Books Finished</span>
+				<span class="stat-label">books finished</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${finalBooksInProgress}</span></span>
-				<span class="stat-label">In Progress</span>
+				<span class="stat-label">in progress</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${totalBooks}</span></span>
-				<span class="stat-label">Total Books</span>
+				<span class="stat-label">total books</span>
 			</div>
 		</div>
 
@@ -386,7 +386,7 @@ function renderAudiobookshelfStats(data) {
 			currentlyReading.length
 				? `
 		<div class="currently-reading">
-			<h4>Currently Reading</h4>
+			<h4>currently reading</h4>
 			<div class="reading-list">
 				${currentlyReading
 					.map(
@@ -434,38 +434,38 @@ function renderAudiobookshelfStats(data) {
 		<div class="audiobook-grid secondary-stats">
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${uniqueAuthors.size}</span></span>
-				<span class="stat-label">Authors</span>
+				<span class="stat-label">authors</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${uniqueSeries.size}</span></span>
-				<span class="stat-label">Series</span>
+				<span class="stat-label">series</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${uniqueGenres.size}</span></span>
-				<span class="stat-label">Genres</span>
+				<span class="stat-label">genres</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${publishers.size}</span></span>
-				<span class="stat-label">Publishers</span>
+				<span class="stat-label">publishers</span>
 			</div>
 		</div>
 
 		<div class="audiobook-grid daily-stats">
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${todayTime}</span></span>
-				<span class="stat-label">Today</span>
+				<span class="stat-label">today</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${bestDayTime}</span></span>
-				<span class="stat-label">Best Day</span>
+				<span class="stat-label">best day</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${avgDayTime}</span></span>
-				<span class="stat-label">Avg Per Day</span>
+				<span class="stat-label">avg per day</span>
 			</div>
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${Math.round(finalBooksFinished / Math.max(daysSinceCreated / 30, 1))}</span></span>
-				<span class="stat-label">Books/Month</span>
+				<span class="stat-label">books/month</span>
 			</div>
 		</div>
 
@@ -473,14 +473,14 @@ function renderAudiobookshelfStats(data) {
 			data.user
 				? `
 		<div class="user-profile-section">
-			<h4>Profile Information</h4>
+			<h4>profile information</h4>
 			<div class="profile-stats">
 				<div class="profile-stat">
-					<span class="profile-label">Member since:</span>
+					<span class="profile-label">member since:</span>
 					<span class="profile-value">${new Date(data.user.createdAt).toLocaleDateString()}</span>
 				</div>
 				<div class="profile-stat">
-					<span class="profile-label">Last active:</span>
+					<span class="profile-label">last active:</span>
 					<span class="profile-value">${new Date(data.user.lastSeen).toLocaleDateString()}</span>
 				</div>
 			</div>
@@ -493,9 +493,9 @@ function renderAudiobookshelfStats(data) {
 			allFinishedBooks.length > 0
 				? `
 		<div class="all-books">
-			<h4>Finished Books</h4>
+			<h4>finished books</h4>
 			<div class="book-search">
-				<input type="text" id="book-search-input" class="search-input" placeholder="Search books..." oninput="filterBooks()">
+				<input type="text" id="book-search-input" class="search-input" placeholder="search books..." oninput="filterBooks()">
 			</div>
 			<div class="books-grid" id="all-books-grid">
 				${allFinishedBooks
@@ -513,7 +513,7 @@ function renderAudiobookshelfStats(data) {
 							<span class="book-grid-title">${book.title}</span>
 							<span class="book-grid-author">by ${book.author}</span>
 							${book.series ? `<span class="book-grid-series">${book.series.name}</span>` : ""}
-							${book.finishedAt && book.finishedAt > 0 ? `<span class="book-grid-stats">Finished ${new Date(book.finishedAt).toLocaleDateString()}</span>` : ""}
+							${book.finishedAt && book.finishedAt > 0 ? `<span class="book-grid-stats">finished ${new Date(book.finishedAt).toLocaleDateString()}</span>` : ""}
 						</div>
 					</div>
 				`,
@@ -529,7 +529,7 @@ function renderAudiobookshelfStats(data) {
 			recentSessions.length
 				? `
 		<div class="recent-sessions">
-			<h4>Recent Listening Sessions</h4>
+			<h4>recent listening sessions</h4>
 			<div class="sessions-list">
 				${recentSessions
 					.map(
@@ -586,7 +586,7 @@ function loadBookDescription(bookElement) {
 		if (bookData?.description) {
 			descriptionDiv.innerHTML = bookData.description;
 		} else {
-			descriptionDiv.innerHTML = "<p>No description available</p>";
+			descriptionDiv.innerHTML = "<p>no description available</p>";
 		}
 	}, 300);
 }

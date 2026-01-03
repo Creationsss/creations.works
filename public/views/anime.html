@@ -9,7 +9,10 @@
 		<link rel="stylesheet" href="/public/css/style.css" />
 		<link rel="stylesheet" href="/public/css/layout.css" />
 		<link rel="stylesheet" href="/public/css/typography.css" />
+		<link rel="stylesheet" href="/public/css/components/myanimelist.css" />
+		<link rel="stylesheet" href="/public/css/components/animations.css" />
 
+		<script src="/public/js/myanimelist.js"></script>
 		<script src="/public/js/sticky-back-button.js" defer></script>
 		<script
 			async
@@ -40,7 +43,11 @@
 		<main class="main">
 			<section class="section">
 				<div class="container">
-					<div class="full-page-contacts" id="projects-list"></div>
+					<div class="mal-stats" id="mal-stats">
+						<div class="loading-spinner">
+							loading anime stats...
+						</div>
+					</div>
 				</div>
 			</section>
 		</main>

@@ -27,3 +27,10 @@ type Gravatar = {
 type ProjectLink = {
 	url: string;
 };
+
+type MyAnimeList = {
+	clientId: string | null;
+	clientSecret: string | null;
+	accessToken: string | null;
+	refreshToken: string | null;
+};
