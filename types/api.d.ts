@@ -33,6 +33,20 @@ interface AudiobookshelfStats {
 	user: AudiobookshelfUser;
 }
 
+interface BooksData {
+	totalTime: number;
+	totalItems: number;
+	totalBooks: number;
+	libraries: unknown[];
+	items: Record<string, unknown>;
+	[key: string]: unknown;
+}
+
+interface TimezoneData {
+	timezone: string;
+	[key: string]: unknown;
+}
+
 interface LogEntry {
 	timestamp: number;
 	level: string;
@@ -62,77 +76,79 @@ interface ProjectLinksData {
 	projects: ProjectInfo[];
 }
 
-interface MALAnimeListItem {
-	node: {
-		id: number;
-		title: string;
-		main_picture?: {
-			medium: string;
-			large: string;
-		};
-		status?: string;
-		media_type?: string;
-		num_episodes?: number;
-		start_season?: {
-			year: number;
-			season: string;
-		};
-		mean?: number;
-		synopsis?: string;
-		genres?: Array<{
-			id: number;
-			name: string;
-		}>;
-	};
-	list_status: {
-		status: string;
-		score: number;
-		num_episodes_watched: number;
-		is_rewatching: boolean;
-		updated_at: string;
-		start_date?: string;
-		finish_date?: string;
-	};
+interface AniListDate {
+	year: number | null;
+	month: number | null;
+	day: number | null;
 }
 
-interface MALAnimeListResponse {
-	data: MALAnimeListItem[];
-	paging?: {
-		next?: string;
+interface AniListMedia {
+	id: number;
+	title: {
+		romaji: string;
+		english: string | null;
+		native: string | null;
 	};
+	coverImage: {
+		extraLarge: string;
+		large: string;
+		medium: string;
+	};
+	bannerImage: string | null;
+	format: string;
+	status: string;
+	episodes: number | null;
+	duration: number | null;
+	season: string | null;
+	seasonYear: number | null;
+	averageScore: number | null;
+	meanScore: number | null;
+	genres: string[];
+	description: string | null;
 }
 
-interface MALUserInfo {
+interface AniListEntry {
+	id: number;
+	mediaId: number;
+	status: string;
+	score: number;
+	progress: number;
+	startedAt: AniListDate;
+	completedAt: AniListDate;
+	updatedAt: number;
+	media: AniListMedia;
+}
+
+interface AniListUser {
 	id: number;
 	name: string;
-	picture?: string;
-	joined_at?: string;
-	anime_statistics?: {
-		num_items_watching: number;
-		num_items_completed: number;
-		num_items_on_hold: number;
-		num_items_dropped: number;
-		num_items_plan_to_watch: number;
-		num_items: number;
-		num_days_watched: number;
-		num_days_watching: number;
-		num_days_completed: number;
-		num_days_on_hold: number;
-		num_days_dropped: number;
-		num_days: number;
-		num_episodes: number;
-		num_times_rewatched: number;
-		mean_score: number;
+	avatar: {
+		large: string;
+		medium: string;
+	};
+	createdAt: number;
+	statistics: {
+		anime: {
+			count: number;
+			meanScore: number;
+			standardDeviation: number;
+			minutesWatched: number;
+			episodesWatched: number;
+			statuses: Array<{
+				status: string;
+				count: number;
+			}>;
+		};
 	};
 }
 
-interface MALData {
-	user: MALUserInfo | null;
-	watching: MALAnimeListItem[];
-	completed: MALAnimeListItem[];
-	onHold: MALAnimeListItem[];
-	dropped: MALAnimeListItem[];
-	planToWatch: MALAnimeListItem[];
+interface AniListData {
+	user: AniListUser | null;
+	watching: AniListEntry[];
+	completed: AniListEntry[];
+	onHold: AniListEntry[];
+	dropped: AniListEntry[];
+	planToWatch: AniListEntry[];
 	statistics: {
 		totalAnime: number;
 		totalEpisodes: number;

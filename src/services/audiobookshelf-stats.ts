@@ -2,15 +2,6 @@ import { echo } from "@atums/echo";
 import { audiobookshelf } from "#environment";
 import { normalizeUrl } from "#utils/url";
 
-export type BooksData = {
-	totalTime: number;
-	totalItems: number;
-	totalBooks: number;
-	libraries: unknown[];
-	items: Record<string, unknown>;
-	[key: string]: unknown;
-};
-
 let cachedBooks: object | null = null;
 
 async function fetchAndCacheBooks() {

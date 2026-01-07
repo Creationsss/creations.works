@@ -3,11 +3,6 @@ import { timezoneDB } from "#environment";
 import { normalizeUrl } from "#utils/url";
 import { CachedService } from "./base-cache";
 
-export type TimezoneData = {
-	timezone: string;
-	[key: string]: unknown;
-};
-
 class TimezoneService extends CachedService<TimezoneData> {
 	protected async fetchData(): Promise<TimezoneData | null> {
 		if (!timezoneDB.url || !timezoneDB.id) {
