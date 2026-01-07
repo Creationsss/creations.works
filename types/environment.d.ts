@@ -34,3 +34,7 @@ type MyAnimeList = {
 	accessToken: string | null;
 	refreshToken: string | null;
 };
+
+type AniList = {
+	username: string | null;
+};

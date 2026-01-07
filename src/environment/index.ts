@@ -44,6 +44,10 @@ const myAnimeList: MyAnimeList = {
 	refreshToken: process.env.MAL_REFRESH_TOKEN || null,
 };
 
+const aniList: AniList = {
+	username: process.env.ANILIST_USERNAME || null,
+};
+
 function verifyRequiredVariables(): void {
 	let hasError = false;
 
@@ -86,5 +90,6 @@ export {
 	gravatar,
 	projectLinks,
 	myAnimeList,
+	aniList,
 	verifyRequiredVariables,
 };

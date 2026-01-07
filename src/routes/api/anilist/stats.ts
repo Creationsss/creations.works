@@ -1,5 +1,5 @@
 import { CONTENT_TYPE } from "#constants";
-import { getCachedMAL } from "#services/myanimelist";
+import { getCachedAniList } from "#services/anilist";
 import { handleCachedJSONResponse } from "#utils/route-handlers";
 
 const routeDef: RouteDef = {
@@ -9,8 +9,8 @@ const routeDef: RouteDef = {
 };
 
 async function handler(): Promise<Response> {
-	const cachedMAL = getCachedMAL();
-	return handleCachedJSONResponse(cachedMAL, "MAL stats");
+	const cachedAniList = getCachedAniList();
+	return handleCachedJSONResponse(cachedAniList, "AniList stats");
 }
 
 export { handler, routeDef };

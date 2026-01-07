@@ -1,22 +1,22 @@
-let malData = null;
-let malError = null;
+let anilistData = null;
+let anilistError = null;
 const animeById = {};
 
-fetch("/api/mal/stats")
+fetch("/api/anilist/stats")
 	.then((response) => {
 		if (!response.ok) throw new Error("Failed to fetch stats");
 		return response.json();
 	})
 	.then((data) => {
 		if (data.error) {
-			malError = data.error;
+			anilistError = data.error;
 			return;
 		}
-		malData = data;
+		anilistData = data;
 		buildAnimeIndex(data);
 	})
 	.catch(() => {
-		malError = "Failed to load anime stats";
+		anilistError = "Failed to load anime stats";
 	});
 
 function buildAnimeIndex(data) {
@@ -29,21 +29,21 @@ function buildAnimeIndex(data) {
 	];
 
 	for (const item of allLists) {
-		animeById[item.node.id] = item;
+		animeById[item.media.id] = item;
 	}
 }
 
-function updateMALStats() {
+function updateAniListStats() {
 	const statsContainer = document.getElementById("mal-stats");
 
-	if (malError) {
+	if (anilistError) {
 		window.location.href = "/";
 		return;
 	}
 
-	if (malData) {
+	if (anilistData) {
 		statsContainer.style.display = "block";
-		renderMALStats(malData);
+		renderAniListStats(anilistData);
 		createAnimeModal();
 		setupAnimeClickHandlers();
 		setTimeout(() => {
@@ -52,29 +52,45 @@ function updateMALStats() {
 		return;
 	}
 
-	setTimeout(updateMALStats, 50);
+	setTimeout(updateAniListStats, 50);
+}
+
+function getTitle(media) {
+	return media.title.english || media.title.romaji || media.title.native;
 }
 
 function formatSeason(item) {
-	if (item.node.start_season) {
-		const season = item.node.start_season.season;
-		const year = item.node.start_season.year;
-		const seasonName = season.charAt(0).toUpperCase() + season.slice(1);
-		return `${seasonName} ${year}`;
+	if (item.media.season && item.media.seasonYear) {
+		const season =
+			item.media.season.charAt(0) + item.media.season.slice(1).toLowerCase();
+		return `${season} ${item.media.seasonYear}`;
 	}
 	return null;
 }
 
-function formatMediaType(type) {
+function formatMediaType(format) {
 	const types = {
-		tv: "TV",
-		movie: "Movie",
-		ova: "OVA",
-		ona: "ONA",
-		special: "Special",
-		music: "Music",
+		TV: "TV",
+		TV_SHORT: "TV Short",
+		MOVIE: "Movie",
+		SPECIAL: "Special",
+		OVA: "OVA",
+		ONA: "ONA",
+		MUSIC: "Music",
 	};
-	return types[type] || type?.toUpperCase() || "TV";
+	return types[format] || format || "TV";
+}
+
+function formatDate(dateObj) {
+	if (!dateObj || !dateObj.year) return null;
+	const { year, month, day } = dateObj;
+	if (month && day) {
+		return new Date(year, month - 1, day).toLocaleDateString();
+	}
+	if (month) {
+		return `${month}/${year}`;
+	}
+	return `${year}`;
 }
 
 function createAnimeModal() {
@@ -99,7 +115,7 @@ function createAnimeModal() {
 					<p id="modal-synopsis" class="anime-modal-synopsis"></p>
 				</div>
 				<div class="anime-modal-footer">
-					<a id="modal-mal-link" href="" target="_blank" class="anime-modal-link">view on mal</a>
+					<a id="modal-anilist-link" href="" target="_blank" class="anime-modal-link">view on anilist</a>
 					<button class="anime-modal-close" onclick="closeAnimeModal()">close</button>
 				</div>
 			</div>
@@ -134,66 +150,66 @@ function showAnimeModal(animeId) {
 	const dates = document.getElementById("modal-dates");
 	const genres = document.getElementById("modal-genres");
 	const synopsis = document.getElementById("modal-synopsis");
-	const malLink = document.getElementById("modal-mal-link");
+	const anilistLink = document.getElementById("modal-anilist-link");
 
-	const node = anime.node;
-	const listStatus = anime.list_status;
+	const media = anime.media;
 
-	if (node.main_picture) {
-		coverImg.src = node.main_picture.large || node.main_picture.medium;
-		coverImg.alt = node.title;
+	if (media.coverImage) {
+		coverImg.src = media.coverImage.extraLarge || media.coverImage.large;
+		coverImg.alt = getTitle(media);
 		coverImg.style.display = "block";
 	} else {
 		coverImg.style.display = "none";
 	}
 
-	title.textContent = node.title;
+	title.textContent = getTitle(media);
 
-	const mediaType = formatMediaType(node.media_type);
+	const mediaType = formatMediaType(media.format);
 	const season = formatSeason(anime);
-	const episodes = node.num_episodes ? `${node.num_episodes} episodes` : null;
+	const episodes = media.episodes ? `${media.episodes} episodes` : null;
 
 	const metaParts = [mediaType, season, episodes].filter(Boolean);
 	meta.innerHTML = metaParts.map((part) => `<span>${part}</span>`).join("");
 
-	if (node.mean || listStatus.score > 0) {
-		const displayScore = listStatus.score > 0 ? listStatus.score : node.mean;
-		const scoreLabel = listStatus.score > 0 ? "your score" : "average";
+	if (media.averageScore || anime.score > 0) {
+		const displayScore =
+			anime.score > 0 ? anime.score : Math.round(media.averageScore / 10);
+		const scoreLabel = anime.score > 0 ? "your score" : "average";
 		score.innerHTML = `<span>★</span> ${displayScore} <span style="color: var(--text-secondary); font-size: var(--font-size-xs);">(${scoreLabel})</span>`;
 	} else {
 		score.innerHTML = "";
 	}
 
 	const dateParts = [];
-	if (listStatus.start_date) {
-		dateParts.push(
-			`started: ${new Date(listStatus.start_date).toLocaleDateString()}`,
-		);
+	const startDate = formatDate(anime.startedAt);
+	const endDate = formatDate(anime.completedAt);
+	if (startDate) {
+		dateParts.push(`started: ${startDate}`);
 	}
-	if (listStatus.finish_date) {
-		dateParts.push(
-			`finished: ${new Date(listStatus.finish_date).toLocaleDateString()}`,
-		);
+	if (endDate) {
+		dateParts.push(`finished: ${endDate}`);
 	}
 	dates.innerHTML =
 		dateParts.length > 0
 			? dateParts.map((d) => `<span>${d}</span>`).join("")
 			: "";
 
-	if (node.genres && node.genres.length > 0) {
-		genres.innerHTML = node.genres
+	if (media.genres && media.genres.length > 0) {
+		genres.innerHTML = media.genres
 			.map(
 				(genre) =>
-					`<span class="anime-modal-genre">${genre.name.toLowerCase()}</span>`,
+					`<span class="anime-modal-genre">${genre.toLowerCase()}</span>`,
 			)
 			.join("");
 	} else {
 		genres.innerHTML = "";
 	}
 
-	synopsis.textContent = node.synopsis || "";
+	synopsis.textContent = (media.description || "")
+		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<[^>]*>/g, "");
 
-	malLink.href = `https://myanimelist.net/anime/${node.id}`;
+	anilistLink.href = `https://anilist.co/anime/${media.id}`;
 
 	overlay.classList.add("active");
 	document.body.style.overflow = "hidden";
@@ -218,7 +234,7 @@ function setupAnimeClickHandlers() {
 	});
 }
 
-function renderMALStats(data) {
+function renderAniListStats(data) {
 	const container = document.getElementById("mal-stats");
 	const stats = data.statistics;
 
@@ -233,7 +249,7 @@ function renderMALStats(data) {
 				<span class="stats-bar-label">episodes</span>
 			</div>
 			<div class="stats-bar-item">
-				<span class="stats-bar-value">${stats.meanScore.toFixed(1)}</span>
+				<span class="stats-bar-value">${(stats.meanScore / 10).toFixed(1)}</span>
 				<span class="stats-bar-label">mean score</span>
 			</div>
 			<div class="stats-bar-item">
@@ -274,20 +290,19 @@ function renderMALStats(data) {
 				${data.watching
 					.slice(0, 15)
 					.map((item) => {
-						const progress = item.node.num_episodes
-							? (item.list_status.num_episodes_watched /
-									item.node.num_episodes) *
-								100
+						const progress = item.media.episodes
+							? (item.progress / item.media.episodes) * 100
 							: 0;
 						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.node.media_type);
+						const mediaType = formatMediaType(item.media.format);
+						const title = getTitle(item.media);
 
 						return `
-					<div class="anime-card" data-anime-id="${item.node.id}">
+					<div class="anime-card" data-anime-id="${item.media.id}">
 						<div class="anime-card-cover">
 							${
-								item.node.main_picture
-									? `<img src="${item.node.main_picture.large || item.node.main_picture.medium}" alt="${item.node.title}" loading="lazy" onerror="this.style.display='none'">`
+								item.media.coverImage
+									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
 									: ""
 							}
 							<div class="anime-card-overlay">
@@ -295,16 +310,16 @@ function renderMALStats(data) {
 									<div class="anime-card-progress-fill" style="width: ${progress}%"></div>
 								</div>
 								<div class="anime-card-episodes">
-									<span class="current">${item.list_status.num_episodes_watched}</span> / ${item.node.num_episodes || "?"} episodes
+									<span class="current">${item.progress}</span> / ${item.media.episodes || "?"} episodes
 								</div>
 							</div>
 						</div>
 						<div class="anime-card-info">
-							<div class="anime-card-title">${item.node.title}</div>
+							<div class="anime-card-title">${title}</div>
 							<div class="anime-card-meta">
 								<span class="anime-card-type">${mediaType}</span>
 								${season ? `<span class="anime-card-season">${season}</span>` : ""}
-								${item.node.mean ? `<span class="anime-card-score"><span class="star">★</span> ${item.node.mean}</span>` : ""}
+								${item.media.averageScore ? `<span class="anime-card-score"><span class="star">★</span> ${(item.media.averageScore / 10).toFixed(1)}</span>` : ""}
 							</div>
 						</div>
 					</div>
@@ -333,20 +348,21 @@ function renderMALStats(data) {
 					.slice(0, 60)
 					.map((item) => {
 						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.node.media_type);
+						const mediaType = formatMediaType(item.media.format);
+						const title = getTitle(item.media);
 
 						return `
-					<div class="anime-grid-item" data-anime-id="${item.node.id}" data-title="${item.node.title.toLowerCase()}">
+					<div class="anime-grid-item" data-anime-id="${item.media.id}" data-title="${title.toLowerCase()}">
 						<div class="anime-grid-cover">
 							${
-								item.node.main_picture
-									? `<img src="${item.node.main_picture.medium}" alt="${item.node.title}" loading="lazy" onerror="this.style.display='none'">`
+								item.media.coverImage
+									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
 									: ""
 							}
-							${item.list_status.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.list_status.score}</div>` : ""}
+							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
 						</div>
 						<div class="anime-grid-info">
-							<div class="anime-grid-title">${item.node.title}</div>
+							<div class="anime-grid-title">${title}</div>
 							<div class="anime-grid-meta">
 								<span class="anime-grid-type">${mediaType}</span>
 								${season ? `<span>${season}</span>` : ""}
@@ -374,20 +390,21 @@ function renderMALStats(data) {
 				${data.onHold
 					.map((item) => {
 						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.node.media_type);
+						const mediaType = formatMediaType(item.media.format);
+						const title = getTitle(item.media);
 
 						return `
-					<div class="anime-grid-item" data-anime-id="${item.node.id}">
+					<div class="anime-grid-item" data-anime-id="${item.media.id}">
 						<div class="anime-grid-cover">
 							${
-								item.node.main_picture
-									? `<img src="${item.node.main_picture.medium}" alt="${item.node.title}" loading="lazy" onerror="this.style.display='none'">`
+								item.media.coverImage
+									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
 									: ""
 							}
-							${item.list_status.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.list_status.score}</div>` : ""}
+							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
 						</div>
 						<div class="anime-grid-info">
-							<div class="anime-grid-title">${item.node.title}</div>
+							<div class="anime-grid-title">${title}</div>
 							<div class="anime-grid-meta">
 								<span class="anime-grid-type">${mediaType}</span>
 								${season ? `<span>${season}</span>` : ""}
@@ -415,20 +432,21 @@ function renderMALStats(data) {
 				${data.dropped
 					.map((item) => {
 						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.node.media_type);
+						const mediaType = formatMediaType(item.media.format);
+						const title = getTitle(item.media);
 
 						return `
-					<div class="anime-grid-item" data-anime-id="${item.node.id}">
+					<div class="anime-grid-item" data-anime-id="${item.media.id}">
 						<div class="anime-grid-cover">
 							${
-								item.node.main_picture
-									? `<img src="${item.node.main_picture.medium}" alt="${item.node.title}" loading="lazy" onerror="this.style.display='none'">`
+								item.media.coverImage
+									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
 									: ""
 							}
-							${item.list_status.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.list_status.score}</div>` : ""}
+							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
 						</div>
 						<div class="anime-grid-info">
-							<div class="anime-grid-title">${item.node.title}</div>
+							<div class="anime-grid-title">${title}</div>
 							<div class="anime-grid-meta">
 								<span class="anime-grid-type">${mediaType}</span>
 								${season ? `<span>${season}</span>` : ""}
@@ -457,19 +475,20 @@ function renderMALStats(data) {
 					.slice(0, 30)
 					.map((item) => {
 						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.node.media_type);
+						const mediaType = formatMediaType(item.media.format);
+						const title = getTitle(item.media);
 
 						return `
-					<div class="anime-grid-item" data-anime-id="${item.node.id}">
+					<div class="anime-grid-item" data-anime-id="${item.media.id}">
 						<div class="anime-grid-cover">
 							${
-								item.node.main_picture
-									? `<img src="${item.node.main_picture.medium}" alt="${item.node.title}" loading="lazy" onerror="this.style.display='none'">`
+								item.media.coverImage
+									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
 									: ""
 							}
 						</div>
 						<div class="anime-grid-info">
-							<div class="anime-grid-title">${item.node.title}</div>
+							<div class="anime-grid-title">${title}</div>
 							<div class="anime-grid-meta">
 								<span class="anime-grid-type">${mediaType}</span>
 								${season ? `<span>${season}</span>` : ""}
@@ -498,11 +517,11 @@ function renderMALStats(data) {
 					<span class="profile-value">${data.user.name}</span>
 				</div>
 				${
-					data.user.joined_at
+					data.user.createdAt
 						? `
 				<div class="profile-stat">
 					<span class="profile-label">member since</span>
-					<span class="profile-value">${new Date(data.user.joined_at).toLocaleDateString()}</span>
+					<span class="profile-value">${new Date(data.user.createdAt * 1000).toLocaleDateString()}</span>
 				</div>
 				`
 						: ""
@@ -539,4 +558,4 @@ function filterAnime() {
 
 window.closeAnimeModal = closeAnimeModal;
 
-document.addEventListener("DOMContentLoaded", updateMALStats);
+document.addEventListener("DOMContentLoaded", updateAniListStats);
