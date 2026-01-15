@@ -32,7 +32,7 @@ const createSnowflake = () => {
 		UI.SNOWFLAKE_SIZE_MIN;
 	snowflake.style.width = `${size}px`;
 	snowflake.style.height = `${size}px`;
-	snowflake.style.background = "white";
+	snowflake.style.background = "var(--snowflake-color)";
 	snowflake.style.borderRadius = "50%";
 	snowflake.style.opacity = Math.random();
 

@@ -311,7 +311,7 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: rgba(0, 0, 0, 0.4);
+	background: var(--overlay-dark);
 	z-index: 999;
 	opacity: 0;
 	visibility: hidden;
@@ -345,7 +345,7 @@
 	z-index: 1000;
 	opacity: 0;
 	visibility: hidden;
-	box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+	box-shadow: 0 -4px 12px var(--shadow-md);
 }
 
 .author-description::-webkit-scrollbar,
