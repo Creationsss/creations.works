@@ -122,6 +122,15 @@ body {
 	overflow-x: hidden;
 }
 
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 0.15;
+	}
+}
+
 body::before {
 	content: "";
 	position: fixed;
@@ -137,6 +146,7 @@ body::before {
 	opacity: 0.15;
 	pointer-events: none;
 	z-index: 0;
+	animation: fadeIn 2s ease-in-out;
 }
 
 .snowflake {
