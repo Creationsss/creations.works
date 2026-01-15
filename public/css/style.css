@@ -122,6 +122,23 @@ body {
 	overflow-x: hidden;
 }
 
+body::before {
+	content: "";
+	position: fixed;
+	bottom: 0;
+	right: 0;
+	width: 600px;
+	height: auto;
+	aspect-ratio: 651 / 1000;
+	background-image: url("/public/images/white_red.png");
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: bottom right;
+	opacity: 0.15;
+	pointer-events: none;
+	z-index: 0;
+}
+
 .snowflake {
 	position: absolute;
 	background-color: var(--snowflake-color);
