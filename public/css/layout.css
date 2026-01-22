@@ -466,6 +466,24 @@
 	font-size: var(--font-size-sm);
 }
 
+.contact-separator {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+	margin: var(--spacing-md) 0;
+	color: var(--text-muted);
+	font-size: var(--font-size-sm);
+	text-transform: lowercase;
+}
+
+.contact-separator::before,
+.contact-separator::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: var(--border-primary);
+}
+
 .project-link .contact-text {
 	flex-direction: column;
 	align-items: flex-start;

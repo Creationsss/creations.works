@@ -30,12 +30,26 @@
 	const applyTheme = (isDaytime) => {
 		const theme = isDaytime ? "white" : "dark";
 		const colorScheme = isDaytime ? "light" : "dark";
+		const apiTheme = isDaytime ? "light" : "dark";
 
 		document.documentElement.setAttribute("data-theme", theme);
 
 		const meta = document.querySelector('meta[name="color-scheme"]');
 		if (meta) {
 			meta.setAttribute("content", colorScheme);
+		}
+
+		const updateImages = () => {
+			const pfp = document.querySelector(".hero-pfp");
+			if (pfp) {
+				pfp.src = `/api/pfp?theme=${apiTheme}`;
+			}
+		};
+
+		if (document.readyState === "loading") {
+			document.addEventListener("DOMContentLoaded", updateImages);
+		} else {
+			updateImages();
 		}
 	};
 

@@ -20,8 +20,15 @@ type GitLab = {
 	token: string | null;
 };
 
-type Gravatar = {
-	email: string | null;
+type SiteImages = {
+	profilePicture: {
+		light: string | null;
+		dark: string | null;
+	};
+	background: {
+		light: string | null;
+		dark: string | null;
+	};
 };
 
 type ProjectLink = {

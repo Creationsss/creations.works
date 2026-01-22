@@ -1,26 +1,43 @@
-import { createHash } from "node:crypto";
 import { echo } from "@atums/echo";
-import { gravatar } from "#environment";
+import { siteImages } from "#environment";
 import { CachedService } from "./base-cache";
 
-class ProfilePictureService extends CachedService<ArrayBuffer> {
-	protected async fetchData(): Promise<ArrayBuffer | null> {
-		if (!gravatar.email) {
-			throw new Error("GRAVATAR_EMAIL is not configured");
+type ThemeImages = {
+	light: ArrayBuffer | null;
+	dark: ArrayBuffer | null;
+};
+
+class ProfilePictureService extends CachedService<ThemeImages> {
+	protected async fetchData(): Promise<ThemeImages | null> {
+		const result: ThemeImages = { light: null, dark: null };
+
+		if (siteImages.profilePicture.light) {
+			try {
+				const response = await fetch(siteImages.profilePicture.light);
+				if (response.ok) {
+					result.light = await response.arrayBuffer();
+				}
+			} catch (error) {
+				echo.warn(`Failed to fetch light profile picture: ${error}`);
+			}
 		}
 
-		const hash = createHash("md5")
-			.update(gravatar.email.trim().toLowerCase())
-			.digest("hex");
-		const imageUrl = `https://www.gravatar.com/avatar/${hash}?s=512`;
-
-		const response = await fetch(imageUrl);
-
-		if (!response.ok) {
-			throw new Error(`Failed to fetch image: ${response.status}`);
+		if (siteImages.profilePicture.dark) {
+			try {
+				const response = await fetch(siteImages.profilePicture.dark);
+				if (response.ok) {
+					result.dark = await response.arrayBuffer();
+				}
+			} catch (error) {
+				echo.warn(`Failed to fetch dark profile picture: ${error}`);
+			}
 		}
 
-		return await response.arrayBuffer();
+		if (!result.light && !result.dark) {
+			return null;
+		}
+
+		return result;
 	}
 
 	protected getServiceName(): string {
@@ -29,18 +46,91 @@ class ProfilePictureService extends CachedService<ArrayBuffer> {
 
 	protected logCacheSuccess(): void {
 		if (this.cache) {
-			const sizeKB = (this.cache.byteLength / 1024).toFixed(2);
-			echo.debug(`Profile picture cached successfully (${sizeKB} KB)`);
+			const lightSize = this.cache.light
+				? (this.cache.light.byteLength / 1024).toFixed(2)
+				: "0";
+			const darkSize = this.cache.dark
+				? (this.cache.dark.byteLength / 1024).toFixed(2)
+				: "0";
+			echo.debug(
+				`Profile pictures cached (light: ${lightSize} KB, dark: ${darkSize} KB)`,
+			);
+		}
+	}
+}
+
+class BackgroundImageService extends CachedService<ThemeImages> {
+	protected async fetchData(): Promise<ThemeImages | null> {
+		const result: ThemeImages = { light: null, dark: null };
+
+		if (siteImages.background.light) {
+			try {
+				const response = await fetch(siteImages.background.light);
+				if (response.ok) {
+					result.light = await response.arrayBuffer();
+				}
+			} catch (error) {
+				echo.warn(`Failed to fetch light background image: ${error}`);
+			}
+		}
+
+		if (siteImages.background.dark) {
+			try {
+				const response = await fetch(siteImages.background.dark);
+				if (response.ok) {
+					result.dark = await response.arrayBuffer();
+				}
+			} catch (error) {
+				echo.warn(`Failed to fetch dark background image: ${error}`);
+			}
+		}
+
+		if (!result.light && !result.dark) {
+			return null;
+		}
+
+		return result;
+	}
+
+	protected getServiceName(): string {
+		return "background image";
+	}
+
+	protected logCacheSuccess(): void {
+		if (this.cache) {
+			const lightSize = this.cache.light
+				? (this.cache.light.byteLength / 1024).toFixed(2)
+				: "0";
+			const darkSize = this.cache.dark
+				? (this.cache.dark.byteLength / 1024).toFixed(2)
+				: "0";
+			echo.debug(
+				`Background images cached (light: ${lightSize} KB, dark: ${darkSize} KB)`,
+			);
 		}
 	}
 }
 
 const profilePictureService = new ProfilePictureService();
+const backgroundImageService = new BackgroundImageService();
 
-export function getCachedImage(): ArrayBuffer | null {
-	return profilePictureService.getCache();
+export function getCachedProfilePicture(
+	theme: "light" | "dark",
+): ArrayBuffer | null {
+	const cache = profilePictureService.getCache();
+	if (!cache) return null;
+	return cache[theme] || cache.light || cache.dark;
 }
 
-export function startPfpCache(): void {
+export function getCachedBackgroundImage(
+	theme: "light" | "dark",
+): ArrayBuffer | null {
+	const cache = backgroundImageService.getCache();
+	if (!cache) return null;
+	return cache[theme] || cache.light || cache.dark;
+}
+
+export function startImageCaches(): void {
 	profilePictureService.start();
+	backgroundImageService.start();
 }

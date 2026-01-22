@@ -93,6 +93,18 @@ function formatDate(dateObj) {
 	return `${year}`;
 }
 
+function formatShortDate(dateObj) {
+	if (!dateObj || !dateObj.year) return null;
+	const { year, month, day } = dateObj;
+	if (month && day) {
+		return `${month}/${day}/${year.toString().slice(-2)}`;
+	}
+	if (month) {
+		return `${month}/${year.toString().slice(-2)}`;
+	}
+	return `${year}`;
+}
+
 function createAnimeModal() {
 	if (document.getElementById("anime-modal-overlay")) return;
 
@@ -296,6 +308,7 @@ function renderAniListStats(data) {
 						const season = formatSeason(item);
 						const mediaType = formatMediaType(item.media.format);
 						const title = getTitle(item.media);
+						const startDate = formatShortDate(item.startedAt);
 
 						return `
 					<div class="anime-card" data-anime-id="${item.media.id}">
@@ -305,6 +318,7 @@ function renderAniListStats(data) {
 									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
 									: ""
 							}
+							${startDate ? `<div class="anime-card-date-badge">${startDate}</div>` : ""}
 							<div class="anime-card-overlay">
 								<div class="anime-card-progress">
 									<div class="anime-card-progress-fill" style="width: ${progress}%"></div>
@@ -350,6 +364,7 @@ function renderAniListStats(data) {
 						const season = formatSeason(item);
 						const mediaType = formatMediaType(item.media.format);
 						const title = getTitle(item.media);
+						const completedDate = formatShortDate(item.completedAt);
 
 						return `
 					<div class="anime-grid-item" data-anime-id="${item.media.id}" data-title="${title.toLowerCase()}">
@@ -360,6 +375,7 @@ function renderAniListStats(data) {
 									: ""
 							}
 							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
+							${completedDate ? `<div class="anime-grid-date-badge">${completedDate}</div>` : ""}
 						</div>
 						<div class="anime-grid-info">
 							<div class="anime-grid-title">${title}</div>
@@ -392,6 +408,7 @@ function renderAniListStats(data) {
 						const season = formatSeason(item);
 						const mediaType = formatMediaType(item.media.format);
 						const title = getTitle(item.media);
+						const startDate = formatShortDate(item.startedAt);
 
 						return `
 					<div class="anime-grid-item" data-anime-id="${item.media.id}">
@@ -402,6 +419,7 @@ function renderAniListStats(data) {
 									: ""
 							}
 							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
+							${startDate ? `<div class="anime-grid-date-badge">${startDate}</div>` : ""}
 						</div>
 						<div class="anime-grid-info">
 							<div class="anime-grid-title">${title}</div>
@@ -434,6 +452,7 @@ function renderAniListStats(data) {
 						const season = formatSeason(item);
 						const mediaType = formatMediaType(item.media.format);
 						const title = getTitle(item.media);
+						const startDate = formatShortDate(item.startedAt);
 
 						return `
 					<div class="anime-grid-item" data-anime-id="${item.media.id}">
@@ -444,6 +463,7 @@ function renderAniListStats(data) {
 									: ""
 							}
 							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
+							${startDate ? `<div class="anime-grid-date-badge">${startDate}</div>` : ""}
 						</div>
 						<div class="anime-grid-info">
 							<div class="anime-grid-title">${title}</div>

@@ -26,8 +26,15 @@ const gitlab: GitLab = {
 	token: process.env.GITLAB_TOKEN || null,
 };
 
-const gravatar: Gravatar = {
-	email: process.env.GRAVATAR_EMAIL || null,
+const siteImages: SiteImages = {
+	profilePicture: {
+		light: process.env.PROFILE_PICTURE_LIGHT || null,
+		dark: process.env.PROFILE_PICTURE_DARK || null,
+	},
+	background: {
+		light: process.env.BACKGROUND_IMAGE_LIGHT || null,
+		dark: process.env.BACKGROUND_IMAGE_DARK || null,
+	},
 };
 
 const projectLinks: ProjectLink[] = process.env.PROJECT_LINKS
@@ -87,7 +94,7 @@ export {
 	audiobookshelf,
 	timezoneDB,
 	gitlab,
-	gravatar,
+	siteImages,
 	projectLinks,
 	myAnimeList,
 	aniList,

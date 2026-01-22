@@ -28,11 +28,11 @@
 	--gradient-overlay: rgba(0, 0, 0, 0.9);
 	--progress-bg: rgba(255, 255, 255, 0.2);
 	--text-on-dark: rgba(255, 255, 255, 0.8);
-	--badge-bg: rgba(0, 0, 0, 0.85);
+	--badge-bg: rgba(0, 0, 0, 0.6);
 	--star-color: #fbbf24;
 	--accent-on-dark: #bd93f9;
 	--snowflake-color: white;
-	--bg-image: url("/public/images/white_red_no_background.png");
+	--bg-image: url("/api/background?theme=dark");
 
 	--spacing-xs: 0.25rem;
 	--spacing-sm: 0.5rem;
@@ -97,11 +97,11 @@
 	--gradient-overlay: rgba(0, 0, 0, 0.7);
 	--progress-bg: rgba(0, 0, 0, 0.1);
 	--text-on-dark: rgba(255, 255, 255, 0.9);
-	--badge-bg: rgba(0, 0, 0, 0.75);
+	--badge-bg: rgba(0, 0, 0, 0.5);
 	--star-color: #f59e0b;
 	--accent-on-dark: #ffffff;
 	--snowflake-color: #333333;
-	--bg-image: url("/public/images/white_red.png");
+	--bg-image: url("/api/background?theme=light");
 }
 
 * {
@@ -138,7 +138,7 @@ body::before {
 	position: fixed;
 	bottom: 0;
 	right: 0;
-	width: clamp(250px, 40vw, 600px);
+	width: min(clamp(250px, 40vw, 600px), calc(90vh * 0.651));
 	height: auto;
 	aspect-ratio: 651 / 1000;
 	background-image: var(--bg-image);
@@ -147,20 +147,20 @@ body::before {
 	background-position: bottom right;
 	opacity: 0.15;
 	pointer-events: none;
-	z-index: 0;
+	z-index: -1;
 	animation: fadeIn 2s ease-in-out;
 }
 
 @media (max-width: 768px) {
 	body::before {
-		width: 50vw;
+		width: min(50vw, calc(90vh * 0.651));
 		opacity: 0.1;
 	}
 }
 
 @media (max-width: 480px) {
 	body::before {
-		width: 60vw;
+		width: min(60vw, calc(90vh * 0.651));
 		opacity: 0.08;
 	}
 }
@@ -170,5 +170,4 @@ body::before {
 	background-color: var(--snowflake-color);
 	border-radius: 50%;
 	pointer-events: none;
-	z-index: 1;
 }

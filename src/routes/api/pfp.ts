@@ -1,5 +1,5 @@
 import { CACHE_CONTROL, CONTENT_TYPE } from "#constants";
-import { getCachedImage } from "#services/profile-picture";
+import { getCachedProfilePicture } from "#services/profile-picture";
 import { handleCachedBinaryResponse } from "#utils/route-handlers";
 
 const routeDef: RouteDef = {
@@ -8,8 +8,9 @@ const routeDef: RouteDef = {
 	returns: CONTENT_TYPE.PNG,
 };
 
-async function handler(): Promise<Response> {
-	const cachedImageBuffer = getCachedImage();
+async function handler(request: ExtendedRequest): Promise<Response> {
+	const theme = request.query.theme === "dark" ? "dark" : "light";
+	const cachedImageBuffer = getCachedProfilePicture(theme);
 	return handleCachedBinaryResponse(
 		cachedImageBuffer,
 		"Profile picture",

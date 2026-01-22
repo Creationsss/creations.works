@@ -138,14 +138,6 @@ class AniListService extends CachedService<AniListData> {
 			const user = userResult?.User || null;
 			const stats = user?.statistics?.anime;
 
-			const getStatusCount = (status: string): number => {
-				return (
-					stats?.statuses?.find(
-						(s: { status: string; count: number }) => s.status === status,
-					)?.count || 0
-				);
-			};
-
 			return {
 				user,
 				watching,
@@ -158,11 +150,11 @@ class AniListService extends CachedService<AniListData> {
 					totalEpisodes: stats?.episodesWatched || 0,
 					daysWatched: Math.round((stats?.minutesWatched || 0) / 1440),
 					meanScore: stats?.meanScore || 0,
-					watching: getStatusCount("CURRENT"),
-					completed: getStatusCount("COMPLETED"),
-					onHold: getStatusCount("PAUSED"),
-					dropped: getStatusCount("DROPPED"),
-					planToWatch: getStatusCount("PLANNING"),
+					watching: watching.length,
+					completed: completed.length,
+					onHold: onHold.length,
+					dropped: dropped.length,
+					planToWatch: planToWatch.length,
 				},
 			};
 		} catch (error) {
@@ -181,11 +173,13 @@ class AniListService extends CachedService<AniListData> {
 			status,
 		});
 
-		if (!result?.MediaListCollection?.lists?.[0]?.entries) {
+		if (!result?.MediaListCollection?.lists) {
 			return [];
 		}
 
-		return result.MediaListCollection.lists[0].entries;
+		return result.MediaListCollection.lists
+			.flatMap((list) => list.entries || [])
+			.filter((entry) => entry.status === status);
 	}
 
 	protected getServiceName(): string {

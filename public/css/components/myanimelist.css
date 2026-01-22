@@ -129,6 +129,18 @@
 	pointer-events: none;
 }
 
+.anime-card-date-badge {
+	position: absolute;
+	top: var(--spacing-sm);
+	left: var(--spacing-sm);
+	background: var(--badge-bg);
+	color: var(--text-on-dark);
+	padding: 4px 8px;
+	font-size: var(--font-size-xs);
+	font-weight: 500;
+	z-index: 1;
+}
+
 .anime-card-overlay {
 	position: absolute;
 	bottom: 0;
@@ -281,6 +293,17 @@
 	display: flex;
 	align-items: center;
 	gap: 4px;
+}
+
+.anime-grid-date-badge {
+	position: absolute;
+	bottom: var(--spacing-sm);
+	left: var(--spacing-sm);
+	background: var(--badge-bg);
+	color: var(--text-on-dark);
+	padding: 4px 8px;
+	font-size: 10px;
+	font-weight: 500;
 }
 
 .anime-grid-info {

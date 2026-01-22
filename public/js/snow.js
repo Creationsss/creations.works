@@ -7,6 +7,7 @@ snowContainer.style.left = "0";
 snowContainer.style.width = "100vw";
 snowContainer.style.height = "100vh";
 snowContainer.style.pointerEvents = "none";
+snowContainer.style.zIndex = "-2";
 document.body.appendChild(snowContainer);
 
 const maxSnowflakes = UI.MAX_SNOWFLAKES;
@@ -35,6 +36,7 @@ const createSnowflake = () => {
 	snowflake.style.background = "var(--snowflake-color)";
 	snowflake.style.borderRadius = "50%";
 	snowflake.style.opacity = Math.random();
+	snowflake.style.zIndex = "-2";
 
 	snowflake.x = Math.random() * window.innerWidth;
 	snowflake.y = -size;
