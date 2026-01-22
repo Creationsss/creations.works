@@ -32,6 +32,7 @@
 	--star-color: #fbbf24;
 	--accent-on-dark: #bd93f9;
 	--snowflake-color: white;
+	--bg-image: url("/public/images/white_red_no_background.png");
 
 	--spacing-xs: 0.25rem;
 	--spacing-sm: 0.5rem;
@@ -100,6 +101,7 @@
 	--star-color: #f59e0b;
 	--accent-on-dark: #ffffff;
 	--snowflake-color: #333333;
+	--bg-image: url("/public/images/white_red.png");
 }
 
 * {
@@ -136,10 +138,10 @@ body::before {
 	position: fixed;
 	bottom: 0;
 	right: 0;
-	width: 600px;
+	width: clamp(250px, 40vw, 600px);
 	height: auto;
 	aspect-ratio: 651 / 1000;
-	background-image: url("/public/images/white_red.png");
+	background-image: var(--bg-image);
 	background-size: contain;
 	background-repeat: no-repeat;
 	background-position: bottom right;
@@ -147,6 +149,20 @@ body::before {
 	pointer-events: none;
 	z-index: 0;
 	animation: fadeIn 2s ease-in-out;
+}
+
+@media (max-width: 768px) {
+	body::before {
+		width: 50vw;
+		opacity: 0.1;
+	}
+}
+
+@media (max-width: 480px) {
+	body::before {
+		width: 60vw;
+		opacity: 0.08;
+	}
 }
 
 .snowflake {

@@ -6,10 +6,10 @@ iframe[id^="offen-vault"] {
 	border: none !important;
 	outline: none !important;
 	transform: none !important;
-	right: 20px !important;
+	left: 20px !important;
 	bottom: 20px !important;
 	top: auto !important;
-	left: auto !important;
+	right: auto !important;
 	width: 380px !important;
 	height: 107px !important;
 	overflow: hidden !important;
