@@ -49,6 +49,7 @@
 		"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New",
 		monospace;
 
+	--font-size-xs: 0.75rem;
 	--font-size-sm: 0.875rem;
 	--font-size-base: 1rem;
 	--font-size-lg: 1.125rem;

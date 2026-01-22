@@ -589,28 +589,50 @@
 }
 
 @media (max-width: 768px) {
+	.container {
+		max-width: 100%;
+		padding: 0 var(--spacing-md);
+	}
+
+	.audiobookshelf-stats {
+		padding: var(--spacing-md);
+	}
+
 	.audiobook-overview {
 		flex-direction: column;
 		gap: var(--spacing-lg);
-		text-align: center;
 	}
 
 	.audiobook-grid {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: 1fr;
 		gap: var(--spacing-md);
 	}
 
-	.reading-item,
-	.author-item,
-	.series-item {
+	.reading-list .reading-item,
+	.authors-list .author-item,
+	.series-list .series-item {
 		flex-direction: column;
-		text-align: center;
+		align-items: stretch;
 		gap: var(--spacing-sm);
+	}
+
+	.book-cover {
+		width: 150px;
+		height: auto;
+		aspect-ratio: 2 / 3;
+		align-self: center;
+	}
+
+	.book-content,
+	.book-info,
+	.progress-container,
+	.book-stats {
+		width: 100%;
 	}
 
 	.author-info,
 	.series-info {
-		text-align: center;
+		width: 100%;
 	}
 
 	.rank {
@@ -620,15 +642,10 @@
 	.session-item {
 		flex-direction: column;
 		gap: var(--spacing-sm);
-		text-align: center;
 	}
 
-	.session-meta {
-		justify-content: center;
-	}
-
-	.book-stats {
-		justify-content: center;
+	.sessions-list {
+		grid-template-columns: 1fr;
 	}
 }
 

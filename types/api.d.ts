@@ -161,3 +161,44 @@ interface AniListData {
 		planToWatch: number;
 	};
 }
+
+interface NowPlayingTrack {
+	name: string;
+	artist: string;
+	album: string | null;
+	image: string | null;
+	url: string;
+}
+
+interface NowPlayingData {
+	isPlaying: boolean;
+	track: NowPlayingTrack | null;
+}
+
+interface LastFmImage {
+	"#text": string;
+	size: string;
+}
+
+interface LastFmTrack {
+	name: string;
+	artist: {
+		"#text": string;
+		mbid?: string;
+	};
+	album?: {
+		"#text": string;
+		mbid?: string;
+	};
+	image?: LastFmImage[];
+	url: string;
+	"@attr"?: {
+		nowplaying: string;
+	};
+}
+
+interface LastFmResponse {
+	recenttracks?: {
+		track: LastFmTrack[];
+	};
+}

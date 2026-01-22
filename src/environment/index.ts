@@ -55,6 +55,11 @@ const aniList: AniList = {
 	username: process.env.ANILIST_USERNAME || null,
 };
 
+const lastFm: LastFm = {
+	apiKey: process.env.LASTFM_API_KEY || null,
+	username: process.env.LASTFM_USERNAME || null,
+};
+
 function verifyRequiredVariables(): void {
 	let hasError = false;
 
@@ -74,6 +79,10 @@ function verifyRequiredVariables(): void {
 
 	if (myAnimeList.clientId) {
 		joined.push("MAL_CLIENT_SECRET");
+	}
+
+	if (lastFm.apiKey) {
+		joined.push("LASTFM_USERNAME");
 	}
 
 	for (const key of joined) {
@@ -98,5 +107,6 @@ export {
 	projectLinks,
 	myAnimeList,
 	aniList,
+	lastFm,
 	verifyRequiredVariables,
 };

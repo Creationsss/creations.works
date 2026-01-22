@@ -12,7 +12,6 @@
 	width: 100%;
 }
 
-/* Stats Bar */
 .stats-bar {
 	display: flex;
 	flex-wrap: wrap;
@@ -39,7 +38,6 @@
 	color: var(--text-secondary);
 }
 
-/* Section Headers */
 .currently-watching,
 .all-anime,
 .user-profile-section {
@@ -66,7 +64,6 @@
 	font-weight: 400;
 }
 
-/* Currently Watching - Horizontal Scroll */
 .anime-carousel {
 	display: flex;
 	gap: var(--spacing-lg);
@@ -222,7 +219,6 @@
 	color: var(--star-color);
 }
 
-/* Completed Grid */
 .anime-search {
 	margin-bottom: var(--spacing-lg);
 }
@@ -335,7 +331,6 @@
 	padding: 1px 6px;
 }
 
-/* Profile Section */
 .profile-stats {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -361,7 +356,6 @@
 	font-weight: 600;
 }
 
-/* Error State */
 .error-message {
 	text-align: center;
 	padding: var(--spacing-xxl);
@@ -382,14 +376,37 @@
 	margin: 0;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
 	.container {
-		max-width: 95vw;
+		max-width: 100%;
+		padding: 0 var(--spacing-md);
+	}
+
+	.mal-stats {
+		padding: var(--spacing-md);
 	}
 
 	.stats-bar {
-		gap: var(--spacing-md);
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: var(--spacing-sm);
+	}
+
+	.stats-bar-item {
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		background: var(--bg-secondary);
+		padding: var(--spacing-sm);
+		border: 1px solid var(--border-primary);
+	}
+
+	.stats-bar-value {
+		font-size: var(--font-size-lg);
+	}
+
+	.stats-bar-label {
+		font-size: var(--font-size-xs);
 	}
 
 	.anime-card {
@@ -408,27 +425,18 @@
 
 @media (max-width: 480px) {
 	.stats-bar {
-		gap: var(--spacing-sm);
+		grid-template-columns: repeat(2, 1fr);
 	}
 
 	.stats-bar-value {
 		font-size: var(--font-size-base);
 	}
 
-	.stats-bar-label {
-		font-size: var(--font-size-xs);
-	}
-
 	.anime-card {
 		flex: 0 0 200px;
 	}
-
-	.anime-grid {
-		grid-template-columns: repeat(2, 1fr);
-	}
 }
 
-/* Anime Detail Modal */
 .anime-modal-overlay {
 	position: fixed;
 	top: 0;
@@ -604,7 +612,6 @@
 	background: var(--bg-primary);
 }
 
-/* Make cards clickable */
 .anime-card,
 .anime-grid-item {
 	cursor: pointer;

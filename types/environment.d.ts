@@ -45,3 +45,8 @@ type MyAnimeList = {
 type AniList = {
 	username: string | null;
 };
+
+type LastFm = {
+	apiKey: string | null;
+	username: string | null;
+};
