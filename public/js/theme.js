@@ -72,7 +72,10 @@
 		if (!btn) return;
 
 		btn.setAttribute("data-theme", isDaytime ? "light" : "dark");
-		btn.setAttribute("title", isDaytime ? "let me sleep..." : "rise and shine!");
+		btn.setAttribute(
+			"title",
+			isDaytime ? "let me sleep..." : "rise and shine!",
+		);
 	};
 
 	const getCurrentTheme = () => {
