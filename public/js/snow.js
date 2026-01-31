@@ -22,7 +22,9 @@ document.addEventListener("mousemove", (e) => {
 const createSnowflake = () => {
 	if (snowflakes.length >= maxSnowflakes) {
 		const oldestSnowflake = snowflakes.shift();
-		snowContainer.removeChild(oldestSnowflake);
+		if (oldestSnowflake?.parentNode) {
+			snowContainer.removeChild(oldestSnowflake);
+		}
 	}
 
 	const snowflake = document.createElement("div");
@@ -86,11 +88,7 @@ function updateSnowflakes() {
 			continue;
 		}
 
-		if (
-			snowflake.x > window.innerWidth ||
-			snowflake.y > window.innerHeight ||
-			snowflake.x < 0
-		) {
+		if (snowflake.x > window.innerWidth || snowflake.x < 0) {
 			snowflake.x = Math.random() * window.innerWidth;
 			snowflake.y = -size;
 			snowflake.style.left = `${snowflake.x}px`;

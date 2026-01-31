@@ -39,7 +39,7 @@ class ProjectLinksService extends CachedService<ProjectLinksData> {
 			gitlab.token
 		) {
 			const host = new URL(url).host;
-			const normalizedInstanceUrl = normalizeUrl(gitlab.instanceUrl as string);
+			const normalizedInstanceUrl = normalizeUrl(gitlab.instanceUrl);
 			const gitlabHost = new URL(normalizedInstanceUrl).host;
 			if (host === gitlabHost) {
 				return this.fetchGitLabProject(
@@ -93,12 +93,12 @@ class ProjectLinksService extends CachedService<ProjectLinksData> {
 			return null;
 		}
 
-		const baseUrl = normalizeUrl(gitlab.instanceUrl as string);
+		const baseUrl = normalizeUrl(gitlab.instanceUrl);
 		const projectPath = encodeURIComponent(`${namespace}/${project}`);
 		const apiUrl = `${baseUrl}/api/v4/projects/${projectPath}`;
 		const response = await fetch(apiUrl, {
 			headers: {
-				"PRIVATE-TOKEN": gitlab.token as string,
+				"PRIVATE-TOKEN": gitlab.token,
 			},
 		});
 

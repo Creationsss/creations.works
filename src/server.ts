@@ -296,16 +296,6 @@ class ServerHandler {
 					}
 				}
 
-				if (requestBody === undefined) {
-					if (routeModule.routeDef.needsBody === "json") {
-						requestBody = {};
-					} else if (routeModule.routeDef.needsBody === "multipart") {
-						requestBody = new FormData();
-					} else {
-						requestBody = null;
-					}
-				}
-
 				if (
 					(Array.isArray(routeModule.routeDef.method) &&
 						!routeModule.routeDef.method.includes(request.method)) ||

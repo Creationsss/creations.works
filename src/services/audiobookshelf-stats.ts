@@ -1,20 +1,20 @@
 import { echo } from "@atums/echo";
 import { audiobookshelf } from "#environment";
 import { normalizeUrl } from "#utils/url";
+import { CachedService } from "./base-cache";
 
-let cachedBooks: object | null = null;
-
-async function fetchAndCacheBooks() {
-	if (!audiobookshelf.url || !audiobookshelf.token) {
-		echo.warn("Audiobookshelf not configured, skipping books cache");
-		return;
+class AudiobookshelfService extends CachedService<AudiobookshelfStats> {
+	protected getServiceName(): string {
+		return "Audiobookshelf books";
 	}
 
-	try {
-		echo.debug("Fetching books from Audiobookshelf...");
+	protected async fetchData(): Promise<AudiobookshelfStats | null> {
+		if (!audiobookshelf.url || !audiobookshelf.token) {
+			echo.warn("Audiobookshelf not configured, skipping books cache");
+			return null;
+		}
 
 		const baseUrl = normalizeUrl(audiobookshelf.url);
-
 		const headers = { Authorization: `Bearer ${audiobookshelf.token}` };
 
 		const [listeningStatsResponse, authorizeResponse, librariesResponse] =
@@ -76,7 +76,7 @@ async function fetchAndCacheBooks() {
 
 		const libraryItemsData = await Promise.all(libraryItemsPromises);
 
-		const libraryDetails = libraryItemsData.map((lib) => ({
+		const libraryDetails: LibraryDetail[] = libraryItemsData.map((lib) => ({
 			id: lib.libraryId,
 			name: lib.libraryName,
 			total: lib.total,
@@ -90,7 +90,9 @@ async function fetchAndCacheBooks() {
 				const metadata = item.media?.metadata || {};
 				const listeningStatsItem = listeningStatsData.items?.[item.id];
 
-				const transformedMetadata: Record<string, unknown> = { ...metadata };
+				const transformedMetadata: Record<string, unknown> = {
+					...metadata,
+				};
 
 				if (metadata.authorName) {
 					transformedMetadata.authors = [{ name: metadata.authorName }];
@@ -111,7 +113,7 @@ async function fetchAndCacheBooks() {
 
 		const mediaProgress = authorizeData.user?.mediaProgress || [];
 
-		const formattedData = {
+		return {
 			totalTime: listeningStatsData.totalTime || 0,
 			totalItems: Object.keys(listeningStatsData.items || {}).length,
 			totalBooks: totalBooks,
@@ -127,24 +129,25 @@ async function fetchAndCacheBooks() {
 				createdAt: authorizeData.user?.createdAt,
 			},
 		};
+	}
 
-		cachedBooks = formattedData;
-		echo.debug(
-			`Books cached successfully (${totalBooks} books, ${mediaProgress.length} in progress)`,
-		);
-	} catch (error) {
-		echo.error("Failed to fetch books from Audiobookshelf:", error);
+	protected logCacheSuccess(): void {
+		if (this.cache) {
+			echo.debug(
+				`Books cached successfully (${this.cache.totalBooks} books, ${this.cache.mediaProgress.length} in progress)`,
+			);
+		}
 	}
 }
 
-function getCachedBooks(): object | null {
-	return cachedBooks;
+const audiobookshelfService = new AudiobookshelfService();
+
+function getCachedBooks(): AudiobookshelfStats | null {
+	return audiobookshelfService.getCache();
 }
 
-function startBooksCache() {
-	fetchAndCacheBooks();
-
-	setInterval(fetchAndCacheBooks, 60 * 60 * 1000);
+function startBooksCache(): void {
+	audiobookshelfService.start();
 }
 
 export { getCachedBooks, startBooksCache };

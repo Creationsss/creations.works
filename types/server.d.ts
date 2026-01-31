@@ -1,4 +1,3 @@
-type QueryParams = Record<string, string>;
 type Query = Record<string, string>;
 type Params = Record<string, string>;
 

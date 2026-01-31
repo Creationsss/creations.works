@@ -33,37 +33,9 @@ interface AudiobookshelfStats {
 	user: AudiobookshelfUser;
 }
 
-interface BooksData {
-	totalTime: number;
-	totalItems: number;
-	totalBooks: number;
-	libraries: unknown[];
-	items: Record<string, unknown>;
-	[key: string]: unknown;
-}
-
 interface TimezoneData {
 	timezone: string;
 	[key: string]: unknown;
-}
-
-interface LogEntry {
-	timestamp: number;
-	level: string;
-	id: string;
-	file: string;
-	line: string;
-	column: string;
-	data: {
-		context: string;
-		data: [string, string, string];
-	};
-}
-
-interface ViewsData {
-	page: string;
-	views: number;
-	uniqueViews?: number;
 }
 
 interface ProjectInfo {

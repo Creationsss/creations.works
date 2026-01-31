@@ -40,7 +40,7 @@ let anilistPollCount = 0;
 const MAX_POLL_ATTEMPTS = 200;
 
 function updateAniListStats() {
-	const statsContainer = document.getElementById("mal-stats");
+	const statsContainer = document.getElementById("anilist-stats");
 
 	if (anilistError) {
 		window.location.href = "/";
@@ -522,7 +522,7 @@ function setupAnimeClickHandlers() {
 }
 
 function renderAniListStats(data) {
-	const container = document.getElementById("mal-stats");
+	const container = document.getElementById("anilist-stats");
 	const stats = data.statistics;
 
 	const statsHTML = `

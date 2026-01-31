@@ -2,7 +2,7 @@
 	max-width: 90vw;
 }
 
-.mal-stats {
+.anilist-stats {
 	opacity: 0;
 	transition: opacity 0.5s ease;
 	background-color: transparent;
@@ -316,12 +316,7 @@
 }
 
 @media (max-width: 768px) {
-	.container {
-		max-width: 100%;
-		padding: 0 var(--spacing-md);
-	}
-
-	.mal-stats {
+	.anilist-stats {
 		padding: var(--spacing-md);
 	}
 
@@ -650,6 +645,7 @@
 	background: var(--bg-tertiary);
 	color: var(--text-primary);
 	border: 1px solid var(--border-primary);
+	font-family: inherit;
 	font-size: var(--font-size-sm);
 	cursor: pointer;
 	transition: background 0.2s ease;

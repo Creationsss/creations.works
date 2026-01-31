@@ -12,13 +12,6 @@
 	width: 100%;
 }
 
-.audiobook-overview {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: var(--spacing-xl);
-}
-
 .audiobook-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -471,68 +464,14 @@
 	font-size: var(--font-size-xs);
 }
 
-.big-stat {
-	text-align: center;
-	background-color: var(--bg-secondary);
-	padding: var(--spacing-lg);
-	border: 1px solid var(--border-primary);
-}
-
-.big-number {
-	display: block;
-	font-size: var(--font-size-2xl);
-	font-weight: 700;
-	color: var(--accent-primary);
-	line-height: 1;
-}
-
-.big-label {
-	display: block;
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	margin-top: var(--spacing-xs);
-}
-
-.completion-rate {
-	text-align: center;
-	background-color: var(--bg-secondary);
-	padding: var(--spacing-lg);
-	border: 1px solid var(--border-primary);
-}
-
-.completion-number {
-	display: block;
-	font-size: var(--font-size-xl);
-	font-weight: 700;
-	color: var(--accent-secondary);
-	line-height: 1;
-}
-
-.completion-label {
-	display: block;
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	margin-top: var(--spacing-xs);
-}
-
 .secondary-stats,
 .daily-stats {
 	margin-top: var(--spacing-lg);
 }
 
 @media (max-width: 768px) {
-	.container {
-		max-width: 100%;
-		padding: 0 var(--spacing-md);
-	}
-
 	.audiobookshelf-stats {
 		padding: var(--spacing-md);
-	}
-
-	.audiobook-overview {
-		flex-direction: column;
-		gap: var(--spacing-lg);
 	}
 
 	.audiobook-grid {
@@ -581,36 +520,6 @@
 	}
 }
 
-.series-covers {
-	width: 140px;
-	height: 100px;
-	position: relative;
-	flex-shrink: 0;
-}
-
-.series-covers img {
-	position: absolute;
-	width: 70px;
-	height: 95px;
-	object-fit: cover;
-	border: 1px solid var(--border-primary);
-}
-
-.series-grid-item .series-covers {
-	position: relative;
-	width: 100%;
-	height: 100%;
-}
-
-.series-grid-item .series-covers img {
-	position: absolute;
-	width: 60%;
-	height: 85%;
-	top: 7.5%;
-	object-fit: cover;
-	border: 1px solid var(--border-primary);
-}
-
 .skeleton {
 	background: linear-gradient(
 		90deg,
@@ -619,7 +528,7 @@
 		var(--bg-secondary) 75%
 	);
 	background-size: 200% 100%;
-	animation: skeleton-loading 1.5s infinite;
+	animation: skeleton-shimmer 1.5s infinite;
 }
 
 .skeleton-line {
@@ -641,20 +550,4 @@
 
 .skeleton-line.long {
 	width: 95%;
-}
-
-@keyframes skeleton-loading {
-	0% {
-		background-position: -200% 0;
-	}
-	100% {
-		background-position: 200% 0;
-	}
-}
-
-@media (max-width: 768px) {
-	.series-covers {
-		width: 100px;
-		margin: 0 auto;
-	}
 }

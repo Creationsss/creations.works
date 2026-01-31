@@ -1,4 +1,4 @@
-import { POLL_INTERVAL, UI } from "./utils/constants.js";
+import { MAX_POLL_ATTEMPTS, POLL_INTERVAL, UI } from "./utils/constants.js";
 
 let timezoneData = null;
 let timezoneError = null;
@@ -47,7 +47,6 @@ fetch("/api/timezonedb")
 	});
 
 let timezonePollCount = 0;
-const MAX_POLL_ATTEMPTS = 200;
 
 function updateTimezoneInfo() {
 	const timezoneContainer = document.getElementById("timezone-info");

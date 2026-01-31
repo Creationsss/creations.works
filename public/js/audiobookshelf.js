@@ -1,3 +1,10 @@
+function formatDuration(seconds) {
+	const hours = Math.floor(seconds / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	if (hours === 0) return `${minutes}m`;
+	return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
 let audiobookshelfData = null;
 let audiobookshelfError = null;
 
@@ -111,18 +118,10 @@ function renderAudiobookshelfStats(data) {
 
 	const dailyTimes = Object.values(dailyStats);
 	const bestDaySeconds = dailyTimes.length > 0 ? Math.max(...dailyTimes) : 0;
-	const bestDayHours = Math.floor(bestDaySeconds / 3600);
-	const bestDayMinutes = Math.floor((bestDaySeconds % 3600) / 60);
-	const bestDayTime =
-		bestDayMinutes > 0
-			? `${bestDayHours}h ${bestDayMinutes}m`
-			: `${bestDayHours}h`;
+	const bestDayTime = formatDuration(bestDaySeconds);
 
 	const todaySeconds = data.today || 0;
-	const todayHours = Math.floor(todaySeconds / 3600);
-	const todayMinutes = Math.floor((todaySeconds % 3600) / 60);
-	const todayTime =
-		todayMinutes > 0 ? `${todayHours}h ${todayMinutes}m` : `${todayHours}h`;
+	const todayTime = formatDuration(todaySeconds);
 
 	const accountCreated = data.user?.createdAt
 		? new Date(data.user.createdAt)
@@ -132,10 +131,7 @@ function renderAudiobookshelfStats(data) {
 		Math.floor((Date.now() - accountCreated.getTime()) / (24 * 60 * 60 * 1000)),
 	);
 	const avgDaySeconds = data.totalTime / daysSinceCreated;
-	const avgDayHours = Math.floor(avgDaySeconds / 3600);
-	const avgDayMinutes = Math.floor((avgDaySeconds % 3600) / 60);
-	const avgDayTime =
-		avgDayMinutes > 0 ? `${avgDayHours}h ${avgDayMinutes}m` : `${avgDayHours}h`;
+	const avgDayTime = formatDuration(avgDaySeconds);
 
 	books.forEach((book) => {
 		if (book.mediaMetadata?.authors) {
@@ -235,14 +231,8 @@ function renderAudiobookshelfStats(data) {
 					0,
 					progressItem.duration - progressItem.currentTime,
 				);
-				const remainingHours = Math.floor(remainingSeconds / 3600);
-				const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
 				const timeRemaining =
-					progressItem.duration > 0
-						? remainingMinutes > 0
-							? `${remainingHours}h ${remainingMinutes}m`
-							: `${remainingHours}h`
-						: "0h";
+					progressItem.duration > 0 ? formatDuration(remainingSeconds) : "0h";
 
 				return {
 					title,
@@ -284,29 +274,15 @@ function renderAudiobookshelfStats(data) {
 					progress = Math.round(
 						(book.timeListening / book.mediaMetadata.duration) * 100,
 					);
-					const remainingSeconds = Math.max(
-						0,
-						book.mediaMetadata.duration - book.timeListening,
+					timeRemaining = formatDuration(
+						Math.max(0, book.mediaMetadata.duration - book.timeListening),
 					);
-					const remainingHours = Math.floor(remainingSeconds / 3600);
-					const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
-					timeRemaining =
-						remainingMinutes > 0
-							? `${remainingHours}h ${remainingMinutes}m`
-							: `${remainingHours}h`;
 				} else {
 					const estimatedDuration = 12 * 3600;
 					progress = Math.round((book.timeListening / estimatedDuration) * 100);
-					const remainingSeconds = Math.max(
-						0,
-						estimatedDuration - book.timeListening,
+					timeRemaining = formatDuration(
+						Math.max(0, estimatedDuration - book.timeListening),
 					);
-					const remainingHours = Math.floor(remainingSeconds / 3600);
-					const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
-					timeRemaining =
-						remainingMinutes > 0
-							? `${remainingHours}h ${remainingMinutes}m`
-							: `${remainingHours}h`;
 				}
 
 				return {
@@ -334,17 +310,6 @@ function renderAudiobookshelfStats(data) {
 		})
 		.slice(0, 8)
 		.map((session) => {
-			const totalMinutes = Math.round(session.timeListening / 60);
-			const hours = Math.floor(totalMinutes / 60);
-			const minutes = totalMinutes % 60;
-
-			let durationText;
-			if (hours > 0) {
-				durationText = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-			} else {
-				durationText = `${minutes}m`;
-			}
-
 			return {
 				title:
 					session.displayTitle || session.mediaMetadata?.title || "Unknown",
@@ -352,7 +317,7 @@ function renderAudiobookshelfStats(data) {
 					session.displayAuthor ||
 					session.mediaMetadata?.authors?.[0]?.name ||
 					"Unknown",
-				duration: durationText,
+				duration: formatDuration(session.timeListening),
 				date: new Date(session.date).toLocaleDateString(),
 				device:
 					session.deviceInfo?.deviceName ||
