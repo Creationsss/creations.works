@@ -27,6 +27,10 @@ export abstract class CachedService<T> {
 		echo.debug(`${this.getServiceName()} cached successfully`);
 	}
 
+	protected getCacheInterval(): number {
+		return CACHE.INTERVAL;
+	}
+
 	public getCache(): T | null {
 		return this.cache;
 	}
@@ -37,7 +41,10 @@ export abstract class CachedService<T> {
 
 	public start(): void {
 		this.updateCache();
-		this.intervalId = setInterval(() => this.updateCache(), CACHE.INTERVAL);
+		this.intervalId = setInterval(
+			() => this.updateCache(),
+			this.getCacheInterval(),
+		);
 	}
 
 	public stop(): void {

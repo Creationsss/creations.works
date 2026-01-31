@@ -1,14 +1,12 @@
 import { echo } from "@atums/echo";
 import { lastFm } from "#environment";
+import { CachedService } from "./base-cache";
 
 const LASTFM_API_URL = "https://ws.audioscrobbler.com/2.0/";
 const POLL_INTERVAL = 30 * 1000;
 
-class LastFmService {
-	private cache: NowPlayingData | null = null;
-	private intervalId?: NodeJS.Timeout;
-
-	private async fetchNowPlaying(): Promise<NowPlayingData | null> {
+class LastFmService extends CachedService<NowPlayingData> {
+	protected async fetchData(): Promise<NowPlayingData | null> {
 		if (!lastFm.apiKey || !lastFm.username) {
 			return null;
 		}
@@ -65,37 +63,20 @@ class LastFmService {
 		}
 	}
 
-	private async updateCache(): Promise<void> {
-		try {
-			const data = await this.fetchNowPlaying();
-			if (data !== null) {
-				this.cache = data;
-			}
-		} catch (error) {
-			echo.error("Failed to fetch Last.fm now playing:", error);
-		}
+	protected getServiceName(): string {
+		return "Last.fm";
 	}
 
-	public getCache(): NowPlayingData | null {
-		return this.cache;
+	protected override getCacheInterval(): number {
+		return POLL_INTERVAL;
 	}
 
-	public start(): void {
+	public override start(): void {
 		if (!lastFm.apiKey || !lastFm.username) {
 			echo.warn("Last.fm not configured, skipping cache");
 			return;
 		}
-
-		this.updateCache();
-		this.intervalId = setInterval(() => this.updateCache(), POLL_INTERVAL);
-		echo.debug("Last.fm now playing cache started");
-	}
-
-	public stop(): void {
-		if (this.intervalId) {
-			clearInterval(this.intervalId);
-			delete this.intervalId;
-		}
+		super.start();
 	}
 }
 

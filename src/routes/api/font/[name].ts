@@ -39,7 +39,7 @@ async function handler(request: ExtendedRequest): Promise<Response> {
 		headers: {
 			"Content-Type": CONTENT_TYPE.FONT_OTF,
 			"Cross-Origin-Resource-Policy": "same-origin",
-			"Cache-Control": "private, no-store",
+			"Cache-Control": "private, max-age=86400",
 			"X-Content-Type-Options": "nosniff",
 			"Content-Disposition": "inline",
 		},
