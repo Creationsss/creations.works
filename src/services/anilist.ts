@@ -27,6 +27,33 @@ query ($username: String) {
         }
       }
     }
+    favourites {
+      characters(page: 1, perPage: 25) {
+        nodes {
+          id
+          name {
+            full
+            native
+            alternative
+            alternativeSpoiler
+          }
+          image {
+            large
+            medium
+          }
+          description
+          gender
+          age
+          dateOfBirth {
+            year
+            month
+            day
+          }
+          bloodType
+          siteUrl
+        }
+      }
+    }
   }
 }
 `;
@@ -67,6 +94,7 @@ query ($username: String, $status: MediaListStatus) {
           bannerImage
           format
           status
+          source
           episodes
           duration
           season
@@ -75,6 +103,30 @@ query ($username: String, $status: MediaListStatus) {
           meanScore
           genres
           description(asHtml: false)
+          studios(isMain: true) {
+            nodes {
+              name
+            }
+          }
+          startDate {
+            year
+            month
+            day
+          }
+          endDate {
+            year
+            month
+            day
+          }
+          nextAiringEpisode {
+            airingAt
+            timeUntilAiring
+            episode
+          }
+          trailer {
+            id
+            site
+          }
         }
       }
     }
@@ -137,6 +189,7 @@ class AniListService extends CachedService<AniListData> {
 
 			const user = userResult?.User || null;
 			const stats = user?.statistics?.anime;
+			const favouriteCharacters = user?.favourites?.characters?.nodes || [];
 
 			return {
 				user,
@@ -145,6 +198,7 @@ class AniListService extends CachedService<AniListData> {
 				onHold,
 				dropped,
 				planToWatch,
+				favouriteCharacters,
 				statistics: {
 					totalAnime: stats?.count || 0,
 					totalEpisodes: stats?.episodesWatched || 0,

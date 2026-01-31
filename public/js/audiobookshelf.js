@@ -17,6 +17,9 @@ fetch("/api/audiobookshelf/stats")
 		audiobookshelfError = "Failed to load audiobook stats";
 	});
 
+let audiobookshelfPollCount = 0;
+const MAX_POLL_ATTEMPTS = 200;
+
 function updateAudiobookshelfStats() {
 	const statsContainer = document.getElementById("audiobookshelf-stats");
 
@@ -34,6 +37,7 @@ function updateAudiobookshelfStats() {
 	}
 
 	if (audiobookshelfData) {
+		if (!statsContainer) return;
 		statsContainer.style.display = "block";
 		renderAudiobookshelfStats(audiobookshelfData);
 		setTimeout(() => {
@@ -42,7 +46,10 @@ function updateAudiobookshelfStats() {
 		return;
 	}
 
-	setTimeout(updateAudiobookshelfStats, 50);
+	audiobookshelfPollCount++;
+	if (audiobookshelfPollCount < MAX_POLL_ATTEMPTS) {
+		setTimeout(updateAudiobookshelfStats, 50);
+	}
 }
 
 function renderAudiobookshelfStats(data) {

@@ -97,6 +97,7 @@ interface AniListMedia {
 	bannerImage: string | null;
 	format: string;
 	status: string;
+	source: string | null;
 	episodes: number | null;
 	duration: number | null;
 	season: string | null;
@@ -105,6 +106,20 @@ interface AniListMedia {
 	meanScore: number | null;
 	genres: string[];
 	description: string | null;
+	studios: {
+		nodes: Array<{ name: string }>;
+	} | null;
+	startDate: AniListDate | null;
+	endDate: AniListDate | null;
+	nextAiringEpisode: {
+		airingAt: number;
+		timeUntilAiring: number;
+		episode: number;
+	} | null;
+	trailer: {
+		id: string;
+		site: string;
+	} | null;
 }
 
 interface AniListEntry {
@@ -117,6 +132,26 @@ interface AniListEntry {
 	completedAt: AniListDate;
 	updatedAt: number;
 	media: AniListMedia;
+}
+
+interface AniListCharacter {
+	id: number;
+	name: {
+		full: string;
+		native: string | null;
+		alternative: string[];
+		alternativeSpoiler: string[];
+	};
+	image: {
+		large: string;
+		medium: string;
+	};
+	description: string | null;
+	gender: string | null;
+	age: string | null;
+	dateOfBirth: AniListDate | null;
+	bloodType: string | null;
+	siteUrl: string;
 }
 
 interface AniListUser {
@@ -140,6 +175,11 @@ interface AniListUser {
 			}>;
 		};
 	};
+	favourites?: {
+		characters?: {
+			nodes: AniListCharacter[];
+		};
+	};
 }
 
 interface AniListData {
@@ -149,6 +189,7 @@ interface AniListData {
 	onHold: AniListEntry[];
 	dropped: AniListEntry[];
 	planToWatch: AniListEntry[];
+	favouriteCharacters: AniListCharacter[];
 	statistics: {
 		totalAnime: number;
 		totalEpisodes: number;

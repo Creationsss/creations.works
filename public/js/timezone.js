@@ -46,6 +46,9 @@ fetch("/api/timezonedb")
 		timezoneError = "Failed to load timezone data";
 	});
 
+let timezonePollCount = 0;
+const MAX_POLL_ATTEMPTS = 200;
+
 function updateTimezoneInfo() {
 	const timezoneContainer = document.getElementById("timezone-info");
 	const timezoneSection = document.querySelector(".timezone-section");
@@ -66,7 +69,10 @@ function updateTimezoneInfo() {
 		return;
 	}
 
-	setTimeout(updateTimezoneInfo, POLL_INTERVAL);
+	timezonePollCount++;
+	if (timezonePollCount < MAX_POLL_ATTEMPTS) {
+		setTimeout(updateTimezoneInfo, POLL_INTERVAL);
+	}
 }
 
 function renderTimezoneWithTime(data) {

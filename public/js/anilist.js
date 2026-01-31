@@ -33,6 +33,9 @@ function buildAnimeIndex(data) {
 	}
 }
 
+let anilistPollCount = 0;
+const MAX_POLL_ATTEMPTS = 200;
+
 function updateAniListStats() {
 	const statsContainer = document.getElementById("mal-stats");
 
@@ -42,6 +45,7 @@ function updateAniListStats() {
 	}
 
 	if (anilistData) {
+		if (!statsContainer) return;
 		statsContainer.style.display = "block";
 		renderAniListStats(anilistData);
 		createAnimeModal();
@@ -52,7 +56,10 @@ function updateAniListStats() {
 		return;
 	}
 
-	setTimeout(updateAniListStats, 50);
+	anilistPollCount++;
+	if (anilistPollCount < MAX_POLL_ATTEMPTS) {
+		setTimeout(updateAniListStats, 50);
+	}
 }
 
 function getTitle(media) {
@@ -79,6 +86,96 @@ function formatMediaType(format) {
 		MUSIC: "Music",
 	};
 	return types[format] || format || "TV";
+}
+
+function formatSource(source) {
+	if (!source) return null;
+	const sources = {
+		ORIGINAL: "Original",
+		MANGA: "Manga",
+		LIGHT_NOVEL: "Light Novel",
+		VISUAL_NOVEL: "Visual Novel",
+		VIDEO_GAME: "Video Game",
+		NOVEL: "Novel",
+		DOUJINSHI: "Doujinshi",
+		ANIME: "Anime",
+		WEB_NOVEL: "Web Novel",
+		LIVE_ACTION: "Live Action",
+		GAME: "Game",
+		COMIC: "Comic",
+		MULTIMEDIA_PROJECT: "Multimedia Project",
+		PICTURE_BOOK: "Picture Book",
+		OTHER: "Other",
+	};
+	return sources[source] || source;
+}
+
+function formatAiringStatus(status) {
+	const statuses = {
+		FINISHED: "Finished",
+		RELEASING: "Airing",
+		NOT_YET_RELEASED: "Not Yet Aired",
+		CANCELLED: "Cancelled",
+		HIATUS: "On Hiatus",
+	};
+	return statuses[status] || status;
+}
+
+function formatTimeUntil(seconds) {
+	const days = Math.floor(seconds / 86400);
+	const hours = Math.floor((seconds % 86400) / 3600);
+	if (days > 0) return `${days}d ${hours}h`;
+	const mins = Math.floor((seconds % 3600) / 60);
+	if (hours > 0) return `${hours}h ${mins}m`;
+	return `${mins}m`;
+}
+
+function getTrailerUrl(trailer) {
+	if (!trailer || !trailer.id) return null;
+	if (trailer.site === "youtube")
+		return `https://youtube.com/watch?v=${trailer.id}`;
+	if (trailer.site === "dailymotion")
+		return `https://dailymotion.com/video/${trailer.id}`;
+	return null;
+}
+
+function getStudios(media) {
+	if (!media.studios || !media.studios.nodes) return null;
+	const names = media.studios.nodes.map((s) => s.name).filter(Boolean);
+	return names.length > 0 ? names.join(", ") : null;
+}
+
+function renderAnimeGridItem(item, options = {}) {
+	const {
+		showScore = true,
+		showDate = true,
+		dateField = "startedAt",
+	} = options;
+	const season = formatSeason(item);
+	const mediaType = formatMediaType(item.media.format);
+	const title = getTitle(item.media);
+	const date = showDate ? formatShortDate(item[dateField]) : null;
+
+	return `
+		<div class="anime-grid-item" data-anime-id="${item.media.id}" data-title="${title.toLowerCase()}">
+			<div class="anime-grid-cover">
+				${
+					item.media.coverImage
+						? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
+						: ""
+				}
+				${showScore && item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
+				${date ? `<div class="anime-grid-date-badge">${date}</div>` : ""}
+			</div>
+			<div class="anime-grid-info">
+				<div class="anime-grid-title">${title}</div>
+				<div class="anime-grid-meta">
+					<span class="anime-grid-type">${mediaType}</span>
+					${season ? `<span>${season}</span>` : ""}
+				</div>
+			</div>
+		</div>
+	`;
 }
 
 function formatDate(dateObj) {
@@ -119,15 +216,18 @@ function createAnimeModal() {
 						<h3 id="modal-title" class="anime-modal-title"></h3>
 						<div id="modal-meta" class="anime-modal-meta"></div>
 						<div id="modal-score" class="anime-modal-score"></div>
+						<div id="modal-details" class="anime-modal-details"></div>
 						<div id="modal-dates" class="anime-modal-dates"></div>
 						<div id="modal-genres" class="anime-modal-genres"></div>
 					</div>
 				</div>
 				<div class="anime-modal-body">
+					<div id="modal-airing" class="anime-modal-airing"></div>
 					<p id="modal-synopsis" class="anime-modal-synopsis"></p>
 				</div>
 				<div class="anime-modal-footer">
 					<a id="modal-anilist-link" href="" target="_blank" class="anime-modal-link">view on anilist</a>
+					<a id="modal-trailer-link" href="" target="_blank" class="anime-modal-link anime-modal-trailer">trailer</a>
 					<button class="anime-modal-close" onclick="closeAnimeModal()">close</button>
 				</div>
 			</div>
@@ -159,10 +259,13 @@ function showAnimeModal(animeId) {
 	const title = document.getElementById("modal-title");
 	const meta = document.getElementById("modal-meta");
 	const score = document.getElementById("modal-score");
+	const details = document.getElementById("modal-details");
 	const dates = document.getElementById("modal-dates");
 	const genres = document.getElementById("modal-genres");
+	const airing = document.getElementById("modal-airing");
 	const synopsis = document.getElementById("modal-synopsis");
 	const anilistLink = document.getElementById("modal-anilist-link");
+	const trailerLink = document.getElementById("modal-trailer-link");
 
 	const media = anime.media;
 
@@ -178,33 +281,73 @@ function showAnimeModal(animeId) {
 
 	const mediaType = formatMediaType(media.format);
 	const season = formatSeason(anime);
-	const episodes = media.episodes ? `${media.episodes} episodes` : null;
+	const episodes = media.episodes ? `${media.episodes} eps` : null;
+	const duration = media.duration ? `${media.duration} min` : null;
+	const airingStatus = formatAiringStatus(media.status);
 
-	const metaParts = [mediaType, season, episodes].filter(Boolean);
+	const metaParts = [
+		mediaType,
+		airingStatus,
+		season,
+		episodes,
+		duration,
+	].filter(Boolean);
 	meta.innerHTML = metaParts.map((part) => `<span>${part}</span>`).join("");
 
-	if (media.averageScore || anime.score > 0) {
-		const displayScore =
-			anime.score > 0 ? anime.score : Math.round(media.averageScore / 10);
-		const scoreLabel = anime.score > 0 ? "your score" : "average";
-		score.innerHTML = `<span>★</span> ${displayScore} <span style="color: var(--text-secondary); font-size: var(--font-size-xs);">(${scoreLabel})</span>`;
-	} else {
-		score.innerHTML = "";
+	const scoreRows = [];
+	if (anime.score > 0) {
+		scoreRows.push(
+			`<span>★</span> ${anime.score} <span style="color: var(--text-secondary); font-size: var(--font-size-xs);">(your score)</span>`,
+		);
 	}
+	if (media.averageScore) {
+		const avg = (media.averageScore / 10).toFixed(1);
+		if (anime.score > 0) {
+			scoreRows[0] += ` <span style="color: var(--text-secondary); font-size: var(--font-size-xs);">· avg ${avg}</span>`;
+		} else {
+			scoreRows.push(
+				`<span>★</span> ${avg} <span style="color: var(--text-secondary); font-size: var(--font-size-xs);">(average)</span>`,
+			);
+		}
+	}
+	score.innerHTML = scoreRows.join("");
+
+	const detailParts = [];
+	const studio = getStudios(media);
+	if (studio) detailParts.push(`studio: ${studio}`);
+	const source = formatSource(media.source);
+	if (source) detailParts.push(`source: ${source}`);
+	if (anime.progress > 0 && media.episodes) {
+		detailParts.push(`progress: ${anime.progress} / ${media.episodes}`);
+	} else if (anime.progress > 0) {
+		detailParts.push(`progress: ${anime.progress} eps`);
+	}
+	details.innerHTML =
+		detailParts.length > 0
+			? detailParts.map((d) => `<span>${d}</span>`).join("")
+			: "";
 
 	const dateParts = [];
-	const startDate = formatDate(anime.startedAt);
-	const endDate = formatDate(anime.completedAt);
-	if (startDate) {
-		dateParts.push(`started: ${startDate}`);
-	}
-	if (endDate) {
-		dateParts.push(`finished: ${endDate}`);
-	}
+	const userStart = formatDate(anime.startedAt);
+	const userEnd = formatDate(anime.completedAt);
+	if (userStart) dateParts.push(`started: ${userStart}`);
+	if (userEnd) dateParts.push(`finished: ${userEnd}`);
+	const airStart = formatDate(media.startDate);
+	const airEnd = formatDate(media.endDate);
+	if (airStart)
+		dateParts.push(`aired: ${airStart}${airEnd ? ` – ${airEnd}` : ""}`);
 	dates.innerHTML =
 		dateParts.length > 0
 			? dateParts.map((d) => `<span>${d}</span>`).join("")
 			: "";
+
+	if (media.nextAiringEpisode) {
+		const next = media.nextAiringEpisode;
+		const timeStr = formatTimeUntil(next.timeUntilAiring);
+		airing.innerHTML = `<span>episode ${next.episode} airing in ${timeStr}</span>`;
+	} else {
+		airing.innerHTML = "";
+	}
 
 	if (media.genres && media.genres.length > 0) {
 		genres.innerHTML = media.genres
@@ -223,6 +366,14 @@ function showAnimeModal(animeId) {
 
 	anilistLink.href = `https://anilist.co/anime/${media.id}`;
 
+	const trailerUrl = getTrailerUrl(media.trailer);
+	if (trailerUrl) {
+		trailerLink.href = trailerUrl;
+		trailerLink.style.display = "";
+	} else {
+		trailerLink.style.display = "none";
+	}
+
 	overlay.classList.add("active");
 	document.body.style.overflow = "hidden";
 }
@@ -235,12 +386,133 @@ function closeAnimeModal() {
 	}
 }
 
+function showCharacterModal(characterId) {
+	const char = (anilistData.favouriteCharacters || []).find(
+		(c) => c.id === characterId,
+	);
+	if (!char) return;
+
+	const overlay = document.getElementById("anime-modal-overlay");
+	const coverImg = document.getElementById("modal-cover");
+	const title = document.getElementById("modal-title");
+	const meta = document.getElementById("modal-meta");
+	const score = document.getElementById("modal-score");
+	const details = document.getElementById("modal-details");
+	const dates = document.getElementById("modal-dates");
+	const genres = document.getElementById("modal-genres");
+	const airing = document.getElementById("modal-airing");
+	const synopsis = document.getElementById("modal-synopsis");
+	const anilistLink = document.getElementById("modal-anilist-link");
+	const trailerLink = document.getElementById("modal-trailer-link");
+
+	if (char.image) {
+		coverImg.src = char.image.large || char.image.medium;
+		coverImg.alt = char.name.full;
+		coverImg.style.display = "block";
+	} else {
+		coverImg.style.display = "none";
+	}
+
+	title.textContent = char.name.full;
+
+	const altNames = [];
+	if (char.name.native) altNames.push(char.name.native);
+	if (char.name.alternative) {
+		for (const name of char.name.alternative) {
+			if (name) altNames.push(name);
+		}
+	}
+	const spoilerNames = (char.name.alternativeSpoiler || []).filter(Boolean);
+
+	let altHTML = "";
+	if (altNames.length > 0 || spoilerNames.length > 0) {
+		const nameSpans = altNames.join(", ");
+		const spoilerSpans = spoilerNames
+			.map(
+				(name) =>
+					`<span class="name-spoiler" onclick="this.classList.toggle('revealed')">${name}</span>`,
+			)
+			.join(", ");
+
+		altHTML = nameSpans;
+		if (spoilerSpans) {
+			if (altHTML) altHTML += ", ";
+			altHTML += spoilerSpans;
+		}
+	}
+	meta.innerHTML = altHTML
+		? `<span class="character-alt-names">${altHTML}</span>`
+		: "";
+
+	const charDetails = [];
+	if (char.dateOfBirth && (char.dateOfBirth.month || char.dateOfBirth.day)) {
+		const months = [
+			"",
+			"Jan",
+			"Feb",
+			"Mar",
+			"Apr",
+			"May",
+			"Jun",
+			"Jul",
+			"Aug",
+			"Sep",
+			"Oct",
+			"Nov",
+			"Dec",
+		];
+		let birthday = "";
+		if (char.dateOfBirth.month) birthday += months[char.dateOfBirth.month];
+		if (char.dateOfBirth.day) birthday += ` ${char.dateOfBirth.day}`;
+		if (char.dateOfBirth.year) birthday += `, ${char.dateOfBirth.year}`;
+		charDetails.push(`birthday: ${birthday.trim()}`);
+	}
+	if (char.age) charDetails.push(`age: ${char.age}`);
+	if (char.gender) charDetails.push(`gender: ${char.gender}`);
+	if (char.bloodType) charDetails.push(`blood type: ${char.bloodType}`);
+
+	score.innerHTML = "";
+	details.innerHTML = "";
+	airing.innerHTML = "";
+	dates.innerHTML =
+		charDetails.length > 0
+			? charDetails.map((d) => `<span>${d}</span>`).join("")
+			: "";
+	genres.innerHTML = "";
+	trailerLink.style.display = "none";
+
+	const desc = (char.description || "")
+		.replace(/~!.*?!~/gs, "")
+		.replace(/__(.+?)__/g, "$1")
+		.replace(/\*\*(.+?)\*\*/g, "$1")
+		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<[^>]*>/g, "")
+		.trim();
+	synopsis.textContent = desc || "no description available";
+
+	anilistLink.href = char.siteUrl || `https://anilist.co/character/${char.id}`;
+
+	overlay.classList.add("active");
+	document.body.style.overflow = "hidden";
+}
+
 function setupAnimeClickHandlers() {
-	document.querySelectorAll(".anime-card, .anime-grid-item").forEach((card) => {
+	document
+		.querySelectorAll(".anime-card, .anime-grid-item:not(.character-grid-item)")
+		.forEach((card) => {
+			card.addEventListener("click", () => {
+				const animeId = card.dataset.animeId;
+				if (animeId) {
+					showAnimeModal(Number(animeId));
+				}
+			});
+		});
+
+	document.querySelectorAll(".character-grid-item").forEach((card) => {
 		card.addEventListener("click", () => {
-			const animeId = card.dataset.animeId;
-			if (animeId) {
-				showAnimeModal(Number(animeId));
+			const charId = card.dataset.characterId;
+			if (charId) {
+				showCharacterModal(Number(charId));
 			}
 		});
 	});
@@ -291,6 +563,36 @@ function renderAniListStats(data) {
 		</div>
 
 		${
+			data.favouriteCharacters && data.favouriteCharacters.length > 0
+				? `
+		<div class="all-anime">
+			<div class="section-header">
+				<h4>favourite characters</h4>
+				<span class="section-count">(${data.favouriteCharacters.length})</span>
+			</div>
+			<div class="anime-grid">
+				${data.favouriteCharacters
+					.map(
+						(char) => `
+					<div class="anime-grid-item character-grid-item" data-character-id="${char.id}">
+						<div class="anime-grid-cover">
+							${char.image ? `<img src="${char.image.large || char.image.medium}" alt="${char.name.full}" loading="lazy" onerror="this.style.display='none'">` : ""}
+						</div>
+						<div class="anime-grid-info">
+							<div class="anime-grid-title">${char.name.full}</div>
+							${char.name.native ? `<div class="anime-grid-meta"><span>${char.name.native}</span></div>` : ""}
+						</div>
+					</div>
+				`,
+					)
+					.join("")}
+			</div>
+		</div>
+		`
+				: ""
+		}
+
+		${
 			data.watching.length > 0
 				? `
 		<div class="currently-watching">
@@ -302,7 +604,8 @@ function renderAniListStats(data) {
 				${data.watching
 					.slice(0, 15)
 					.map((item) => {
-						const progress = item.media.episodes
+						const hasEpisodes = item.media.episodes != null;
+						const progress = hasEpisodes
 							? (item.progress / item.media.episodes) * 100
 							: 0;
 						const season = formatSeason(item);
@@ -320,11 +623,9 @@ function renderAniListStats(data) {
 							}
 							${startDate ? `<div class="anime-card-date-badge">${startDate}</div>` : ""}
 							<div class="anime-card-overlay">
-								<div class="anime-card-progress">
-									<div class="anime-card-progress-fill" style="width: ${progress}%"></div>
-								</div>
+								${hasEpisodes ? `<div class="anime-card-progress"><div class="anime-card-progress-fill" style="width: ${progress}%"></div></div>` : ""}
 								<div class="anime-card-episodes">
-									<span class="current">${item.progress}</span> / ${item.media.episodes || "?"} episodes
+									<span class="current">${item.progress}</span>${hasEpisodes ? ` / ${item.media.episodes}` : ""} episodes
 								</div>
 							</div>
 						</div>
@@ -360,33 +661,9 @@ function renderAniListStats(data) {
 			<div class="anime-grid" id="all-anime-grid">
 				${data.completed
 					.slice(0, 60)
-					.map((item) => {
-						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.media.format);
-						const title = getTitle(item.media);
-						const completedDate = formatShortDate(item.completedAt);
-
-						return `
-					<div class="anime-grid-item" data-anime-id="${item.media.id}" data-title="${title.toLowerCase()}">
-						<div class="anime-grid-cover">
-							${
-								item.media.coverImage
-									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
-									: ""
-							}
-							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
-							${completedDate ? `<div class="anime-grid-date-badge">${completedDate}</div>` : ""}
-						</div>
-						<div class="anime-grid-info">
-							<div class="anime-grid-title">${title}</div>
-							<div class="anime-grid-meta">
-								<span class="anime-grid-type">${mediaType}</span>
-								${season ? `<span>${season}</span>` : ""}
-							</div>
-						</div>
-					</div>
-				`;
-					})
+					.map((item) =>
+						renderAnimeGridItem(item, { dateField: "completedAt" }),
+					)
 					.join("")}
 			</div>
 		</div>
@@ -403,35 +680,7 @@ function renderAniListStats(data) {
 				<span class="section-count">(${data.onHold.length})</span>
 			</div>
 			<div class="anime-grid">
-				${data.onHold
-					.map((item) => {
-						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.media.format);
-						const title = getTitle(item.media);
-						const startDate = formatShortDate(item.startedAt);
-
-						return `
-					<div class="anime-grid-item" data-anime-id="${item.media.id}">
-						<div class="anime-grid-cover">
-							${
-								item.media.coverImage
-									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
-									: ""
-							}
-							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
-							${startDate ? `<div class="anime-grid-date-badge">${startDate}</div>` : ""}
-						</div>
-						<div class="anime-grid-info">
-							<div class="anime-grid-title">${title}</div>
-							<div class="anime-grid-meta">
-								<span class="anime-grid-type">${mediaType}</span>
-								${season ? `<span>${season}</span>` : ""}
-							</div>
-						</div>
-					</div>
-				`;
-					})
-					.join("")}
+				${data.onHold.map((item) => renderAnimeGridItem(item)).join("")}
 			</div>
 		</div>
 		`
@@ -447,35 +696,7 @@ function renderAniListStats(data) {
 				<span class="section-count">(${data.dropped.length})</span>
 			</div>
 			<div class="anime-grid">
-				${data.dropped
-					.map((item) => {
-						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.media.format);
-						const title = getTitle(item.media);
-						const startDate = formatShortDate(item.startedAt);
-
-						return `
-					<div class="anime-grid-item" data-anime-id="${item.media.id}">
-						<div class="anime-grid-cover">
-							${
-								item.media.coverImage
-									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
-									: ""
-							}
-							${item.score > 0 ? `<div class="anime-grid-score-badge"><span>★</span> ${item.score}</div>` : ""}
-							${startDate ? `<div class="anime-grid-date-badge">${startDate}</div>` : ""}
-						</div>
-						<div class="anime-grid-info">
-							<div class="anime-grid-title">${title}</div>
-							<div class="anime-grid-meta">
-								<span class="anime-grid-type">${mediaType}</span>
-								${season ? `<span>${season}</span>` : ""}
-							</div>
-						</div>
-					</div>
-				`;
-					})
-					.join("")}
+				${data.dropped.map((item) => renderAnimeGridItem(item)).join("")}
 			</div>
 		</div>
 		`
@@ -493,30 +714,9 @@ function renderAniListStats(data) {
 			<div class="anime-grid">
 				${data.planToWatch
 					.slice(0, 30)
-					.map((item) => {
-						const season = formatSeason(item);
-						const mediaType = formatMediaType(item.media.format);
-						const title = getTitle(item.media);
-
-						return `
-					<div class="anime-grid-item" data-anime-id="${item.media.id}">
-						<div class="anime-grid-cover">
-							${
-								item.media.coverImage
-									? `<img src="${item.media.coverImage.extraLarge || item.media.coverImage.large}" alt="${title}" loading="lazy" onerror="this.style.display='none'">`
-									: ""
-							}
-						</div>
-						<div class="anime-grid-info">
-							<div class="anime-grid-title">${title}</div>
-							<div class="anime-grid-meta">
-								<span class="anime-grid-type">${mediaType}</span>
-								${season ? `<span>${season}</span>` : ""}
-							</div>
-						</div>
-					</div>
-				`;
-					})
+					.map((item) =>
+						renderAnimeGridItem(item, { showScore: false, showDate: false }),
+					)
 					.join("")}
 			</div>
 		</div>

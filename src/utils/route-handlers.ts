@@ -7,7 +7,7 @@ export function createHTMLRouteHandler(filename: string) {
 		const path = resolve("public", "views", filename);
 		const bunFile = file(path);
 
-		if (!bunFile.exists()) {
+		if (!(await bunFile.exists())) {
 			return new Response(`${filename} ${ERROR_MESSAGES.NOT_FOUND}`, {
 				status: HTTP_STATUS.NOT_FOUND,
 				headers: { "Content-Type": CONTENT_TYPE.HTML },

@@ -32,6 +32,7 @@ export const CONTENT_TYPE = {
 	PLAIN: "text/plain",
 	PNG: "image/png",
 	OCTET_STREAM: "application/octet-stream",
+	FONT_OTF: "font/otf",
 } as const;
 
 export const CACHE_CONTROL = {

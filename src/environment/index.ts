@@ -44,13 +44,6 @@ const projectLinks: ProjectLink[] = process.env.PROJECT_LINKS
 			.map((url) => ({ url }))
 	: [];
 
-const myAnimeList: MyAnimeList = {
-	clientId: process.env.MAL_CLIENT_ID || null,
-	clientSecret: process.env.MAL_CLIENT_SECRET || null,
-	accessToken: process.env.MAL_ACCESS_TOKEN || null,
-	refreshToken: process.env.MAL_REFRESH_TOKEN || null,
-};
-
 const aniList: AniList = {
 	username: process.env.ANILIST_USERNAME || null,
 };
@@ -77,10 +70,6 @@ function verifyRequiredVariables(): void {
 		joined.push("GITLAB_TOKEN");
 	}
 
-	if (myAnimeList.clientId) {
-		joined.push("MAL_CLIENT_SECRET");
-	}
-
 	if (lastFm.apiKey) {
 		joined.push("LASTFM_USERNAME");
 	}
@@ -105,7 +94,6 @@ export {
 	gitlab,
 	siteImages,
 	projectLinks,
-	myAnimeList,
 	aniList,
 	lastFm,
 	verifyRequiredVariables,

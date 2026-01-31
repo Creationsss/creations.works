@@ -1,9 +1,5 @@
 const reqLoggerIgnores = {
-	ignoredStartsWith: [
-		"/public",
-		"/api/audiobookshelf/author-details",
-		"/api/audiobookshelf/author-image",
-	],
+	ignoredStartsWith: ["/public"],
 	ignoredPaths: ["/favicon.ico"],
 };
 

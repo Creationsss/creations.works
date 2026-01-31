@@ -56,7 +56,8 @@ const createSnowflake = () => {
 setInterval(createSnowflake, UI.SNOWFLAKE_CREATION_INTERVAL);
 
 function updateSnowflakes() {
-	snowflakes.forEach((snowflake, index) => {
+	for (let i = snowflakes.length - 1; i >= 0; i--) {
+		const snowflake = snowflakes[i];
 		const size = Number.parseFloat(snowflake.style.width);
 		const centerX = snowflake.x + size / 2;
 		const centerY = snowflake.y + size / 2;
@@ -81,8 +82,8 @@ function updateSnowflakes() {
 
 		if (snowflake.y > window.innerHeight) {
 			snowContainer.removeChild(snowflake);
-			snowflakes.splice(index, 1);
-			return;
+			snowflakes.splice(i, 1);
+			continue;
 		}
 
 		if (
@@ -95,7 +96,7 @@ function updateSnowflakes() {
 			snowflake.style.left = `${snowflake.x}px`;
 			snowflake.style.top = `${snowflake.y}px`;
 		}
-	});
+	}
 
 	requestAnimationFrame(updateSnowflakes);
 }
