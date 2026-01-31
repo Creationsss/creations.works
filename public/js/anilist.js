@@ -492,16 +492,38 @@ function showCharacterModal(characterId) {
 	genres.innerHTML = "";
 	trailerLink.style.display = "none";
 
-	const desc = decodeEntities(
-		(char.description || "")
-			.replace(/~!.*?!~/gs, "")
-			.replace(/__(.+?)__/g, "$1")
-			.replace(/\*\*(.+?)\*\*/g, "$1")
-			.replace(/<br\s*\/?>/gi, "\n")
-			.replace(/<[^>]*>/g, "")
-			.trim(),
-	);
-	synopsis.textContent = desc || "no description available";
+	const rawDesc = (char.description || "")
+		.replace(/__(.+?)__/g, "$1")
+		.replace(/\*\*(.+?)\*\*/g, "$1")
+		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<[^>]*>/g, "")
+		.replace(
+			/^(Height|Weight|Birthday|Age|Gender|Blood Type|Bust|Waist|Hip|BWH|Measurements|Eye Color|Hair Color|Race|Species|Affiliation|Occupation|Rank|Status|VA|CV|Seiyuu|Source):?\s*[^\n]*\n?/gim,
+			"",
+		)
+		.trim();
+
+	synopsis.innerHTML = "";
+	if (!rawDesc) {
+		synopsis.textContent = "no description available";
+	} else {
+		const parts = rawDesc.split(/~!([\s\S]*?)!~/g);
+		for (let i = 0; i < parts.length; i++) {
+			const text = decodeEntities(parts[i].trim());
+			if (!text) continue;
+			if (i % 2 === 0) {
+				synopsis.appendChild(document.createTextNode(text));
+			} else {
+				const spoiler = document.createElement("span");
+				spoiler.className = "desc-spoiler";
+				spoiler.textContent = text;
+				spoiler.addEventListener("click", () => {
+					spoiler.classList.toggle("revealed");
+				});
+				synopsis.appendChild(spoiler);
+			}
+		}
+	}
 
 	anilistLink.href = char.siteUrl || `https://anilist.co/character/${char.id}`;
 

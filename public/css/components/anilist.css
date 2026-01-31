@@ -683,6 +683,25 @@
 	user-select: auto;
 }
 
+.anime-modal-synopsis .desc-spoiler {
+	background: var(--text-secondary);
+	color: transparent;
+	cursor: pointer;
+	border-radius: 4px;
+	padding: 2px 4px;
+	user-select: none;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease;
+}
+
+.anime-modal-synopsis .desc-spoiler.revealed {
+	background: none;
+	color: var(--text-primary);
+	user-select: auto;
+	cursor: text;
+}
+
 @media (max-width: 480px) {
 	.anime-modal-header {
 		flex-direction: column;
