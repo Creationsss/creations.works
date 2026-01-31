@@ -65,6 +65,12 @@ function updateAniListStats() {
 	}
 }
 
+const entityDecoder = document.createElement("textarea");
+function decodeEntities(text) {
+	entityDecoder.innerHTML = text;
+	return entityDecoder.value;
+}
+
 function getTitle(media) {
 	return media.title.english || media.title.romaji || media.title.native;
 }
@@ -363,9 +369,11 @@ function showAnimeModal(animeId) {
 		genres.innerHTML = "";
 	}
 
-	synopsis.textContent = (media.description || "")
-		.replace(/<br\s*\/?>/gi, "\n")
-		.replace(/<[^>]*>/g, "");
+	synopsis.textContent = decodeEntities(
+		(media.description || "")
+			.replace(/<br\s*\/?>/gi, "\n")
+			.replace(/<[^>]*>/g, ""),
+	);
 
 	anilistLink.href = `https://anilist.co/anime/${media.id}`;
 
@@ -484,13 +492,15 @@ function showCharacterModal(characterId) {
 	genres.innerHTML = "";
 	trailerLink.style.display = "none";
 
-	const desc = (char.description || "")
-		.replace(/~!.*?!~/gs, "")
-		.replace(/__(.+?)__/g, "$1")
-		.replace(/\*\*(.+?)\*\*/g, "$1")
-		.replace(/<br\s*\/?>/gi, "\n")
-		.replace(/<[^>]*>/g, "")
-		.trim();
+	const desc = decodeEntities(
+		(char.description || "")
+			.replace(/~!.*?!~/gs, "")
+			.replace(/__(.+?)__/g, "$1")
+			.replace(/\*\*(.+?)\*\*/g, "$1")
+			.replace(/<br\s*\/?>/gi, "\n")
+			.replace(/<[^>]*>/g, "")
+			.trim(),
+	);
 	synopsis.textContent = desc || "no description available";
 
 	anilistLink.href = char.siteUrl || `https://anilist.co/character/${char.id}`;
