@@ -58,6 +58,30 @@ query ($username: String) {
 }
 `;
 
+const FOLLOWING_QUERY = `
+query ($userId: Int!, $page: Int) {
+  Page(page: $page, perPage: 25) {
+    following(userId: $userId, sort: USERNAME) {
+      id
+      name
+      avatar {
+        large
+        medium
+      }
+      siteUrl
+      statistics {
+        anime {
+          count
+          episodesWatched
+          minutesWatched
+          meanScore
+        }
+      }
+    }
+  }
+}
+`;
+
 const ANIME_LIST_QUERY = `
 query ($username: String, $status: MediaListStatus) {
   MediaListCollection(userName: $username, type: ANIME, status: $status, sort: UPDATED_TIME_DESC) {
@@ -191,6 +215,11 @@ class AniListService extends CachedService<AniListData> {
 			const stats = user?.statistics?.anime;
 			const favouriteCharacters = user?.favourites?.characters?.nodes || [];
 
+			let following: AniListFollowing[] = [];
+			if (user?.id) {
+				following = await this.fetchFollowing(user.id);
+			}
+
 			return {
 				user,
 				watching,
@@ -199,6 +228,7 @@ class AniListService extends CachedService<AniListData> {
 				dropped,
 				planToWatch,
 				favouriteCharacters,
+				following,
 				statistics: {
 					totalAnime: stats?.count || 0,
 					totalEpisodes: stats?.episodesWatched || 0,
@@ -234,6 +264,16 @@ class AniListService extends CachedService<AniListData> {
 		return result.MediaListCollection.lists
 			.flatMap((list) => list.entries || [])
 			.filter((entry) => entry.status === status);
+	}
+
+	private async fetchFollowing(userId: number): Promise<AniListFollowing[]> {
+		const result = await graphqlRequest<{
+			Page: {
+				following: AniListFollowing[];
+			};
+		}>(FOLLOWING_QUERY, { userId, page: 1 });
+
+		return result?.Page?.following || [];
 	}
 
 	protected getServiceName(): string {

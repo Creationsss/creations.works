@@ -504,29 +504,8 @@ function renderAudiobookshelfStats(data) {
 			<div class="book-search">
 				<input type="text" id="book-search-input" class="search-input" placeholder="search books..." oninput="filterBooks()">
 			</div>
-			<div class="books-grid" id="all-books-grid">
-				${allFinishedBooks
-					.map(
-						(book) => `
-					<div class="book-grid-item" data-title="${book.title.toLowerCase()}" data-author="${book.author.toLowerCase()}" data-series="${(book.series?.name || "").toLowerCase()}">
-						${
-							book.coverUrl
-								? `<div class="book-grid-cover">
-							<img src="${book.coverUrl}" alt="${book.title} cover" loading="lazy" onerror="this.style.display='none'">
-						</div>`
-								: ""
-						}
-						<div class="book-grid-info">
-							<span class="book-grid-title">${book.title}</span>
-							<span class="book-grid-author">by ${book.author}</span>
-							${book.series ? `<span class="book-grid-series">${book.series.name}</span>` : ""}
-							${book.finishedAt && book.finishedAt > 0 ? `<span class="book-grid-stats">finished ${new Date(book.finishedAt).toLocaleDateString()}</span>` : ""}
-						</div>
-					</div>
-				`,
-					)
-					.join("")}
-			</div>
+			<div class="books-grid" id="all-books-grid"></div>
+			<div class="pagination" id="books-pagination"></div>
 		</div>
 		`
 				: ""
@@ -563,10 +542,73 @@ function renderAudiobookshelfStats(data) {
 	`;
 
 	container.innerHTML = statsHTML;
+
+	allFinishedBooksData = allFinishedBooks;
+	currentPage = 1;
+	renderBooksPage();
+}
+
+function renderBookItem(book) {
+	return `
+		<div class="book-grid-item" data-title="${book.title.toLowerCase()}" data-author="${book.author.toLowerCase()}" data-series="${(book.series?.name || "").toLowerCase()}">
+			${
+				book.coverUrl
+					? `<div class="book-grid-cover">
+				<img src="${book.coverUrl}" alt="${book.title} cover" loading="lazy" onerror="this.style.display='none'">
+			</div>`
+					: ""
+			}
+			<div class="book-grid-info">
+				<span class="book-grid-title">${book.title}</span>
+				<span class="book-grid-author">by ${book.author}</span>
+				${book.series ? `<span class="book-grid-series">${book.series.name}</span>` : ""}
+				${book.finishedAt && book.finishedAt > 0 ? `<span class="book-grid-stats">finished ${new Date(book.finishedAt).toLocaleDateString()}</span>` : ""}
+			</div>
+		</div>
+	`;
+}
+
+function renderBooksPage() {
+	const grid = document.getElementById("all-books-grid");
+	const pagination = document.getElementById("books-pagination");
+	if (!grid) return;
+
+	const totalPages = Math.ceil(allFinishedBooksData.length / BOOKS_PER_PAGE);
+	const start = (currentPage - 1) * BOOKS_PER_PAGE;
+	const pageBooks = allFinishedBooksData.slice(start, start + BOOKS_PER_PAGE);
+
+	grid.innerHTML = pageBooks.map(renderBookItem).join("");
+
+	if (pagination && totalPages > 1) {
+		pagination.style.display = "";
+		pagination.innerHTML = `
+			<button class="pagination-btn" onclick="goToBookPage(${currentPage - 1})" ${currentPage <= 1 ? "disabled" : ""}>prev</button>
+			<span class="pagination-info">${currentPage} / ${totalPages}</span>
+			<button class="pagination-btn" onclick="goToBookPage(${currentPage + 1})" ${currentPage >= totalPages ? "disabled" : ""}>next</button>
+		`;
+	} else if (pagination) {
+		pagination.style.display = "none";
+	}
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Called from HTML onclick attribute
+function goToBookPage(page) {
+	const totalPages = Math.ceil(allFinishedBooksData.length / BOOKS_PER_PAGE);
+	if (page < 1 || page > totalPages) return;
+	currentPage = page;
+	renderBooksPage();
+
+	const grid = document.getElementById("all-books-grid");
+	if (grid) {
+		grid.scrollIntoView({ behavior: "smooth", block: "start" });
+	}
 }
 
 let bookDescriptionTimeout;
 let currentlyReadingBooks = [];
+let allFinishedBooksData = [];
+let currentPage = 1;
+const BOOKS_PER_PAGE = 24;
 
 // biome-ignore lint/correctness/noUnusedVariables: Called from HTML onmouseenter attribute
 function loadBookDescription(bookElement) {
@@ -617,27 +659,33 @@ function clearBookTimeout() {
 function filterBooks() {
 	const searchInput = document.getElementById("book-search-input");
 	const booksGrid = document.getElementById("all-books-grid");
+	const pagination = document.getElementById("books-pagination");
 
 	if (!searchInput || !booksGrid) return;
 
 	const searchTerm = searchInput.value.toLowerCase();
-	const bookItems = booksGrid.querySelectorAll(".book-grid-item");
 
-	bookItems.forEach((item) => {
-		const title = item.dataset.title || "";
-		const author = item.dataset.author || "";
-		const series = item.dataset.series || "";
+	if (!searchTerm) {
+		renderBooksPage();
+		return;
+	}
 
-		if (
+	const matched = allFinishedBooksData.filter((book) => {
+		const title = book.title.toLowerCase();
+		const author = book.author.toLowerCase();
+		const series = (book.series?.name || "").toLowerCase();
+		return (
 			title.includes(searchTerm) ||
 			author.includes(searchTerm) ||
 			series.includes(searchTerm)
-		) {
-			item.style.display = "flex";
-		} else {
-			item.style.display = "none";
-		}
+		);
 	});
+
+	booksGrid.innerHTML = matched.map(renderBookItem).join("");
+
+	if (pagination) {
+		pagination.style.display = "none";
+	}
 }
 
 function addDimmingOverlay() {

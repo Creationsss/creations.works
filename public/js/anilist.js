@@ -1,6 +1,9 @@
 let anilistData = null;
 let anilistError = null;
 const animeById = {};
+let allCompletedAnime = [];
+let animeCurrentPage = 1;
+const ANIME_PER_PAGE = 30;
 
 fetch("/api/anilist/stats")
 	.then((response) => {
@@ -658,14 +661,8 @@ function renderAniListStats(data) {
 			<div class="anime-search">
 				<input type="text" id="anime-search-input" class="search-input" placeholder="search completed anime..." oninput="filterAnime()">
 			</div>
-			<div class="anime-grid" id="all-anime-grid">
-				${data.completed
-					.slice(0, 60)
-					.map((item) =>
-						renderAnimeGridItem(item, { dateField: "completedAt" }),
-					)
-					.join("")}
-			</div>
+			<div class="anime-grid" id="all-anime-grid"></div>
+			<div class="pagination" id="anime-pagination"></div>
 		</div>
 		`
 				: ""
@@ -725,6 +722,39 @@ function renderAniListStats(data) {
 		}
 
 		${
+			data.following && data.following.length > 0
+				? `
+		<div class="all-anime">
+			<div class="section-header">
+				<h4>following</h4>
+				<span class="section-count">(${data.following.length})</span>
+			</div>
+			<div class="following-grid">
+				${data.following
+					.map(
+						(user) => `
+					<a href="${user.siteUrl}" class="following-card" target="_blank" rel="noopener noreferrer">
+						<div class="following-avatar">
+							${user.avatar ? `<img src="${user.avatar.large || user.avatar.medium}" alt="${user.name}" loading="lazy" onerror="this.style.display='none'">` : ""}
+						</div>
+						<div class="following-info">
+							<div class="following-name">${user.name}</div>
+							<div class="following-stats">
+								${user.statistics?.anime?.count ? `<span>${user.statistics.anime.count} anime</span>` : ""}
+								${user.statistics?.anime?.meanScore ? `<span>★ ${(user.statistics.anime.meanScore / 10).toFixed(1)}</span>` : ""}
+							</div>
+						</div>
+					</a>
+				`,
+					)
+					.join("")}
+			</div>
+		</div>
+		`
+				: ""
+		}
+
+		${
 			data.user
 				? `
 		<div class="user-profile-section">
@@ -754,26 +784,77 @@ function renderAniListStats(data) {
 	`;
 
 	container.innerHTML = statsHTML;
+
+	allCompletedAnime = data.completed;
+	animeCurrentPage = 1;
+	renderAnimePage();
+}
+
+function renderAnimePage() {
+	const grid = document.getElementById("all-anime-grid");
+	const pagination = document.getElementById("anime-pagination");
+	if (!grid) return;
+
+	const totalPages = Math.ceil(allCompletedAnime.length / ANIME_PER_PAGE);
+	const start = (animeCurrentPage - 1) * ANIME_PER_PAGE;
+	const pageItems = allCompletedAnime.slice(start, start + ANIME_PER_PAGE);
+
+	grid.innerHTML = pageItems
+		.map((item) => renderAnimeGridItem(item, { dateField: "completedAt" }))
+		.join("");
+
+	if (pagination && totalPages > 1) {
+		pagination.style.display = "";
+		pagination.innerHTML = `
+			<button class="pagination-btn" onclick="goToAnimePage(${animeCurrentPage - 1})" ${animeCurrentPage <= 1 ? "disabled" : ""}>prev</button>
+			<span class="pagination-info">${animeCurrentPage} / ${totalPages}</span>
+			<button class="pagination-btn" onclick="goToAnimePage(${animeCurrentPage + 1})" ${animeCurrentPage >= totalPages ? "disabled" : ""}>next</button>
+		`;
+	} else if (pagination) {
+		pagination.style.display = "none";
+	}
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Called from HTML onclick attribute
+function goToAnimePage(page) {
+	const totalPages = Math.ceil(allCompletedAnime.length / ANIME_PER_PAGE);
+	if (page < 1 || page > totalPages) return;
+	animeCurrentPage = page;
+	renderAnimePage();
+
+	const grid = document.getElementById("all-anime-grid");
+	if (grid) {
+		grid.scrollIntoView({ behavior: "smooth", block: "start" });
+	}
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Used in HTML oninput attribute
 function filterAnime() {
 	const searchInput = document.getElementById("anime-search-input");
 	const animeGrid = document.getElementById("all-anime-grid");
+	const pagination = document.getElementById("anime-pagination");
 
 	if (!searchInput || !animeGrid) return;
 
 	const searchTerm = searchInput.value.toLowerCase();
-	const animeItems = animeGrid.querySelectorAll(".anime-grid-item");
 
-	animeItems.forEach((item) => {
-		const title = item.dataset.title || "";
-		if (title.includes(searchTerm)) {
-			item.style.display = "";
-		} else {
-			item.style.display = "none";
-		}
+	if (!searchTerm) {
+		renderAnimePage();
+		return;
+	}
+
+	const matched = allCompletedAnime.filter((item) => {
+		const title = getTitle(item.media).toLowerCase();
+		return title.includes(searchTerm);
 	});
+
+	animeGrid.innerHTML = matched
+		.map((item) => renderAnimeGridItem(item, { dateField: "completedAt" }))
+		.join("");
+
+	if (pagination) {
+		pagination.style.display = "none";
+	}
 }
 
 window.closeAnimeModal = closeAnimeModal;

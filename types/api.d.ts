@@ -154,6 +154,24 @@ interface AniListCharacter {
 	siteUrl: string;
 }
 
+interface AniListFollowing {
+	id: number;
+	name: string;
+	avatar: {
+		large: string;
+		medium: string;
+	};
+	siteUrl: string;
+	statistics: {
+		anime: {
+			count: number;
+			episodesWatched: number;
+			minutesWatched: number;
+			meanScore: number;
+		};
+	};
+}
+
 interface AniListUser {
 	id: number;
 	name: string;
@@ -190,6 +208,7 @@ interface AniListData {
 	dropped: AniListEntry[];
 	planToWatch: AniListEntry[];
 	favouriteCharacters: AniListCharacter[];
+	following: AniListFollowing[];
 	statistics: {
 		totalAnime: number;
 		totalEpisodes: number;
