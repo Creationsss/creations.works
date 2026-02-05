@@ -97,6 +97,67 @@ function formatMediaType(format) {
 	return types[format] || format || "TV";
 }
 
+function formatActivityTime(timestamp) {
+	const now = Date.now();
+	const diff = now - timestamp * 1000;
+	const minutes = Math.floor(diff / 60000);
+	const hours = Math.floor(diff / 3600000);
+	const days = Math.floor(diff / 86400000);
+
+	if (minutes < 1) return "just now";
+	if (minutes < 60) return `${minutes}m ago`;
+	if (hours < 24) return `${hours}h ago`;
+	if (days < 7) return `${days}d ago`;
+	return new Date(timestamp * 1000).toLocaleDateString();
+}
+
+function formatActivityStatus(status) {
+	const statusMap = {
+		watched: "Watched",
+		completed: "Completed",
+		dropped: "Dropped",
+		paused: "Paused",
+		plans_to_watch: "Plans to watch",
+		rewatched: "Rewatched",
+	};
+	return statusMap[status?.toLowerCase()] || status || "Updated";
+}
+
+function renderActivityItem(activity) {
+	if (activity.type === "TEXT" && activity.text) {
+		return `
+			<div class="activity-item activity-text">
+				<div class="activity-content">
+					<div class="activity-text-content">${activity.text}</div>
+					<div class="activity-time">${formatActivityTime(activity.createdAt)}</div>
+				</div>
+			</div>
+		`;
+	}
+
+	if (activity.media) {
+		const title =
+			activity.media.title.english || activity.media.title.romaji || "Unknown";
+		const statusText = formatActivityStatus(activity.status);
+		const progressText = activity.progress ? ` ${activity.progress}` : "";
+
+		return `
+			<div class="activity-item activity-list" data-anime-id="${activity.media.id}">
+				<div class="activity-cover">
+					<img src="${activity.media.coverImage.medium}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
+				</div>
+				<div class="activity-content">
+					<div class="activity-status">${statusText}${progressText}</div>
+					<div class="activity-title">${title}</div>
+					<div class="activity-time">${formatActivityTime(activity.createdAt)}</div>
+				</div>
+			</div>
+		`;
+	}
+
+	return "";
+}
+
 function formatSource(source) {
 	if (!source) return null;
 	const sources = {
@@ -695,6 +756,22 @@ function renderAniListStats(data) {
 			</div>
 			<div class="anime-grid" id="all-anime-grid"></div>
 			<div class="pagination" id="anime-pagination"></div>
+		</div>
+		`
+				: ""
+		}
+
+		${
+			data.activities && data.activities.length > 0
+				? `
+		<div class="all-anime">
+			<div class="section-header">
+				<h4>recent activity</h4>
+				<span class="section-count">(${data.activities.length})</span>
+			</div>
+			<div class="activity-list">
+				${data.activities.map((activity) => renderActivityItem(activity)).join("")}
+			</div>
 		</div>
 		`
 				: ""

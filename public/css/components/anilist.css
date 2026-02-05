@@ -702,6 +702,77 @@
 	cursor: text;
 }
 
+.activity-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.activity-item {
+	display: flex;
+	gap: var(--spacing-md);
+	padding: var(--spacing-sm);
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	transition: background 0.2s ease;
+}
+
+.activity-item.activity-list {
+	cursor: pointer;
+}
+
+.activity-item.activity-list:hover {
+	background: var(--bg-secondary);
+}
+
+.activity-cover {
+	width: 45px;
+	height: 65px;
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.activity-cover img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.activity-content {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 2px;
+	min-width: 0;
+	flex: 1;
+}
+
+.activity-status {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	text-transform: capitalize;
+}
+
+.activity-title {
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.activity-text-content {
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	line-height: 1.4;
+}
+
+.activity-time {
+	font-size: var(--font-size-xs);
+	color: var(--text-muted);
+}
+
 @media (max-width: 480px) {
 	.anime-modal-header {
 		flex-direction: column;
