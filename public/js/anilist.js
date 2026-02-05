@@ -43,7 +43,19 @@ function updateAniListStats() {
 	const statsContainer = document.getElementById("anilist-stats");
 
 	if (anilistError) {
-		window.location.href = "/";
+		if (statsContainer) {
+			statsContainer.style.display = "block";
+			const errorDiv = document.createElement("div");
+			errorDiv.className = "error-message";
+			const title = document.createElement("h3");
+			title.textContent = "unable to load anime stats";
+			const message = document.createElement("p");
+			message.textContent = anilistError;
+			errorDiv.appendChild(title);
+			errorDiv.appendChild(message);
+			statsContainer.appendChild(errorDiv);
+			statsContainer.style.opacity = "1";
+		}
 		return;
 	}
 

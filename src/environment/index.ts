@@ -9,7 +9,7 @@ const environment: Environment = {
 };
 
 const audiobookshelf: Audiobookshelf = {
-	url: process.env.AUDIOBOOKSHELF_URL || false,
+	url: process.env.AUDIOBOOKSHELF_URL || null,
 	token: process.env.AUDIOBOOKSHELF_TOKEN || null,
 	libraryIds: process.env.AUDIOBOOKSHELF_LIBRARY_IDS
 		? process.env.AUDIOBOOKSHELF_LIBRARY_IDS.split(",").map((id) => id.trim())
@@ -17,12 +17,12 @@ const audiobookshelf: Audiobookshelf = {
 };
 
 const timezoneDB: TimezoneDB = {
-	url: process.env.TIMEZONEDB_URL || false,
+	url: process.env.TIMEZONEDB_URL || null,
 	id: process.env.TIMEZONEDB_ID || null,
 };
 
 const gitlab: GitLab = {
-	instanceUrl: process.env.GITLAB_INSTANCE_URL || false,
+	instanceUrl: process.env.GITLAB_INSTANCE_URL || null,
 	token: process.env.GITLAB_TOKEN || null,
 };
 
