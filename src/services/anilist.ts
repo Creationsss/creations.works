@@ -194,7 +194,6 @@ async function graphqlRequest<T>(
 class AniListService extends CachedService<AniListData> {
 	protected async fetchData(): Promise<AniListData | null> {
 		if (!aniList.username) {
-			echo.warn("AniList username not configured, skipping cache");
 			return null;
 		}
 
@@ -286,6 +285,14 @@ class AniListService extends CachedService<AniListData> {
 				`AniList cached successfully (${this.cache.statistics.totalAnime} anime, ${this.cache.statistics.watching} watching)`,
 			);
 		}
+	}
+
+	public override start(): void {
+		if (!aniList.username) {
+			echo.warn("AniList username not configured, skipping cache");
+			return;
+		}
+		super.start();
 	}
 }
 

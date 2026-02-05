@@ -234,3 +234,36 @@ interface LastFmResponse {
 		track: LastFmTrack[];
 	};
 }
+
+interface AudiobookListeningBook {
+	id: string;
+	title: string;
+	author: string;
+	cover: string;
+	progress: number;
+	currentTime: number;
+	duration: number;
+}
+
+interface AudiobookListeningData {
+	isListening: boolean;
+	book: AudiobookListeningBook | null;
+}
+
+interface AudiobookshelfSession {
+	id: string;
+	userId: string;
+	libraryItemId: string;
+	displayTitle: string;
+	displayAuthor: string;
+	coverPath: string;
+	duration: number;
+	currentTime: number;
+	progress: number;
+	updatedAt: number;
+}
+
+interface AudiobookshelfSessionsResponse {
+	sessions: AudiobookshelfSession[];
+	total: number;
+}
