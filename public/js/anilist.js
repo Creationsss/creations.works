@@ -4,6 +4,7 @@ const animeById = {};
 let allCompletedAnime = [];
 let animeCurrentPage = 1;
 const ANIME_PER_PAGE = 30;
+let activityData = [];
 
 fetch("/api/anilist/stats")
 	.then((response) => {
@@ -139,10 +140,8 @@ function renderActivityItem(activity) {
 	if (activity.type === "TEXT" && activity.text) {
 		return `
 			<div class="activity-item activity-text">
-				<div class="activity-content">
-					<div class="activity-text-content">${activity.text}</div>
-					<div class="activity-time">${formatActivityTime(activity.createdAt)}</div>
-				</div>
+				<div class="activity-text-content">${activity.text}</div>
+				<div class="activity-time">${formatActivityTime(activity.createdAt)}</div>
 			</div>
 		`;
 	}
@@ -154,7 +153,7 @@ function renderActivityItem(activity) {
 		const progressText = activity.progress ? ` ${activity.progress}` : "";
 
 		return `
-			<div class="activity-item activity-list" data-anime-id="${activity.media.id}">
+			<div class="activity-item activity-media" data-anime-id="${activity.media.id}">
 				<div class="activity-cover">
 					<img src="${activity.media.coverImage.medium}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
 				</div>
@@ -169,6 +168,89 @@ function renderActivityItem(activity) {
 
 	return "";
 }
+
+function createActivityModal() {
+	if (document.getElementById("activity-modal-overlay")) return;
+
+	const modalHTML = `
+		<div id="activity-modal-overlay" class="activity-modal-overlay">
+			<div class="activity-modal">
+				<div class="activity-modal-header">
+					<h3>recent activity</h3>
+					<button class="activity-modal-close" onclick="closeActivityModal()">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M18 6L6 18M6 6l12 12"/>
+						</svg>
+					</button>
+				</div>
+				<div id="activity-list" class="activity-list"></div>
+			</div>
+		</div>
+	`;
+
+	document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+	const overlay = document.getElementById("activity-modal-overlay");
+	overlay.addEventListener("click", (e) => {
+		if (e.target === overlay) {
+			closeActivityModal();
+		}
+	});
+
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			closeActivityModal();
+		}
+	});
+}
+
+function createActivityFab(count) {
+	if (document.getElementById("activity-fab")) return;
+
+	const fabHTML = `
+		<button id="activity-fab" class="activity-fab" onclick="openActivityModal()">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+			</svg>
+			${count > 0 ? `<span class="activity-fab-badge">${count}</span>` : ""}
+		</button>
+	`;
+
+	document.body.insertAdjacentHTML("beforeend", fabHTML);
+}
+
+function openActivityModal() {
+	const overlay = document.getElementById("activity-modal-overlay");
+	const list = document.getElementById("activity-list");
+
+	if (!overlay || !list) return;
+
+	list.innerHTML = activityData.map((a) => renderActivityItem(a)).join("");
+
+	list.querySelectorAll(".activity-item.activity-media").forEach((item) => {
+		item.addEventListener("click", () => {
+			const animeId = item.dataset.animeId;
+			if (animeId) {
+				closeActivityModal();
+				showAnimeModal(Number.parseInt(animeId, 10));
+			}
+		});
+	});
+
+	overlay.classList.add("active");
+	document.body.style.overflow = "hidden";
+}
+
+function closeActivityModal() {
+	const overlay = document.getElementById("activity-modal-overlay");
+	if (overlay) {
+		overlay.classList.remove("active");
+		document.body.style.overflow = "";
+	}
+}
+
+window.openActivityModal = openActivityModal;
+window.closeActivityModal = closeActivityModal;
 
 function formatSource(source) {
 	if (!source) return null;
@@ -774,22 +856,6 @@ function renderAniListStats(data) {
 		}
 
 		${
-			data.activities && data.activities.length > 0
-				? `
-		<div class="all-anime">
-			<div class="section-header">
-				<h4>recent activity</h4>
-				<span class="section-count">(${data.activities.length})</span>
-			</div>
-			<div class="activity-list">
-				${data.activities.map((activity) => renderActivityItem(activity)).join("")}
-			</div>
-		</div>
-		`
-				: ""
-		}
-
-		${
 			data.onHold && data.onHold.length > 0
 				? `
 		<div class="all-anime">
@@ -799,22 +865,6 @@ function renderAniListStats(data) {
 			</div>
 			<div class="anime-grid">
 				${data.onHold.map((item) => renderAnimeGridItem(item)).join("")}
-			</div>
-		</div>
-		`
-				: ""
-		}
-
-		${
-			data.dropped && data.dropped.length > 0
-				? `
-		<div class="all-anime">
-			<div class="section-header">
-				<h4>dropped</h4>
-				<span class="section-count">(${data.dropped.length})</span>
-			</div>
-			<div class="anime-grid">
-				${data.dropped.map((item) => renderAnimeGridItem(item)).join("")}
 			</div>
 		</div>
 		`
@@ -836,6 +886,22 @@ function renderAniListStats(data) {
 						renderAnimeGridItem(item, { showScore: false, showDate: false }),
 					)
 					.join("")}
+			</div>
+		</div>
+		`
+				: ""
+		}
+
+		${
+			data.dropped && data.dropped.length > 0
+				? `
+		<div class="all-anime">
+			<div class="section-header">
+				<h4>dropped</h4>
+				<span class="section-count">(${data.dropped.length})</span>
+			</div>
+			<div class="anime-grid">
+				${data.dropped.map((item) => renderAnimeGridItem(item)).join("")}
 			</div>
 		</div>
 		`
@@ -909,6 +975,12 @@ function renderAniListStats(data) {
 	allCompletedAnime = data.completed;
 	animeCurrentPage = 1;
 	renderAnimePage();
+
+	if (data.activities && data.activities.length > 0) {
+		activityData = data.activities;
+		createActivityModal();
+		createActivityFab(data.activities.length);
+	}
 }
 
 function renderAnimePage() {

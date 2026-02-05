@@ -43,3 +43,12 @@ type LastFm = {
 	apiKey: string | null;
 	username: string | null;
 };
+
+type Offen = {
+	scriptUrl: string | null;
+	accountId: string | null;
+};
+
+type Site = {
+	name: string;
+};

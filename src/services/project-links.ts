@@ -1,5 +1,5 @@
 import { echo } from "@atums/echo";
-import { gitlab, projectLinks } from "#environment";
+import { gitlab, projectLinks, site } from "#environment";
 import { normalizeUrl } from "#utils/url";
 import { CachedService } from "./base-cache";
 
@@ -8,21 +8,21 @@ const PLATFORMS = {
 		name: "GitHub",
 		getApiUrl: (owner: string, repo: string) =>
 			`https://api.github.com/repos/${owner}/${repo}`,
-		headers: {
+		getHeaders: () => ({
 			Accept: "application/vnd.github.v3+json",
-			"User-Agent": "creations.works",
-		},
+			"User-Agent": site.name,
+		}),
 	},
 	codeberg: {
 		name: "Codeberg",
 		getApiUrl: (owner: string, repo: string) =>
 			`https://codeberg.org/api/v1/repos/${owner}/${repo}`,
-		headers: {
+		getHeaders: () => ({
 			Accept: "application/json",
-			"User-Agent": "creations.works",
-		},
+			"User-Agent": site.name,
+		}),
 	},
-} as const;
+};
 
 class ProjectLinksService extends CachedService<ProjectLinksData> {
 	protected async fetchData(): Promise<ProjectLinksData | null> {
@@ -93,7 +93,7 @@ class ProjectLinksService extends CachedService<ProjectLinksData> {
 		const apiUrl = config.getApiUrl(owner, repo);
 
 		try {
-			const response = await fetch(apiUrl, { headers: config.headers });
+			const response = await fetch(apiUrl, { headers: config.getHeaders() });
 
 			if (!response.ok) {
 				echo.warn(

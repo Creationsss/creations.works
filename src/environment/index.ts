@@ -53,6 +53,15 @@ const lastFm: LastFm = {
 	username: process.env.LASTFM_USERNAME || null,
 };
 
+const offen: Offen = {
+	scriptUrl: process.env.OFFEN_SCRIPT_URL || null,
+	accountId: process.env.OFFEN_ACCOUNT_ID || null,
+};
+
+const site: Site = {
+	name: process.env.SITE_NAME || "creations.works",
+};
+
 function verifyRequiredVariables(): void {
 	let hasError = false;
 
@@ -96,5 +105,7 @@ export {
 	projectLinks,
 	aniList,
 	lastFm,
+	offen,
+	site,
 	verifyRequiredVariables,
 };
