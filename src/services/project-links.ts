@@ -31,6 +31,15 @@ class ProjectLinksService extends CachedService<ProjectLinksData> {
 			);
 		}
 
+		const codebergMatch = url.match(/codeberg\.org\/([^/]+)\/([^/]+)/);
+		if (codebergMatch?.[1] && codebergMatch?.[2]) {
+			return this.fetchCodebergProject(
+				codebergMatch[1],
+				codebergMatch[2].replace(/\.git$/, ""),
+				url,
+			);
+		}
+
 		const gitlabMatch = url.match(/([^/]+)\/([^/]+)\/([^/]+)\/?$/);
 		if (
 			gitlabMatch?.[2] &&
@@ -69,6 +78,36 @@ class ProjectLinksService extends CachedService<ProjectLinksData> {
 
 		if (!response.ok) {
 			echo.warn(`GitHub API error for ${owner}/${repo}: ${response.status}`);
+			return null;
+		}
+
+		const data = (await response.json()) as {
+			name: string;
+			description: string | null;
+			html_url: string;
+		};
+		return {
+			name: data.name,
+			description: data.description || "",
+			url: data.html_url || originalUrl,
+		};
+	}
+
+	private async fetchCodebergProject(
+		owner: string,
+		repo: string,
+		originalUrl: string,
+	): Promise<ProjectInfo | null> {
+		const apiUrl = `https://codeberg.org/api/v1/repos/${owner}/${repo}`;
+		const response = await fetch(apiUrl, {
+			headers: {
+				Accept: "application/json",
+				"User-Agent": "creations.works",
+			},
+		});
+
+		if (!response.ok) {
+			echo.warn(`Codeberg API error for ${owner}/${repo}: ${response.status}`);
 			return null;
 		}
 
