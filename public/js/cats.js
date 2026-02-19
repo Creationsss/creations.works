@@ -23,7 +23,7 @@ function createFloatingCat(usedCats) {
 	usedCats.push(catNumber);
 
 	const cat = document.createElement("img");
-	cat.src = `/public/assets/cats/cat-${catNumber}.png`;
+	cat.src = `/api/cat?i=${catNumber}`;
 	cat.className = "floating-cat";
 
 	cat.style.left = `${Math.random() * (window.innerWidth - UI.CAT_SPAWN_RANGE) + UI.CAT_SPAWN_OFFSET}px`;

@@ -3,6 +3,7 @@ import { serverHandler } from "#server";
 import { startAniListCache } from "#services/anilist";
 import { startAudiobookshelfListeningCache } from "#services/audiobookshelf-listening";
 import { startBooksCache } from "#services/audiobookshelf-stats";
+import { startCataasCache } from "#services/cataas";
 import { startLastFmCache } from "#services/lastfm";
 import { startImageCaches } from "#services/profile-picture";
 import { startProjectLinksCache } from "#services/project-links";
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
 	startTimezoneCache();
 	startLastFmCache();
 	startSrsViewerCache();
+	startCataasCache();
 
 	serverHandler.initialize();
 }
