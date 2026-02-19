@@ -1,4 +1,3 @@
-import { echo } from "@atums/echo";
 import { requiredVariables } from "#environment/constants";
 
 const environment: Environment = {
@@ -53,6 +52,11 @@ const lastFm: LastFm = {
 	username: process.env.LASTFM_USERNAME || null,
 };
 
+const srsViewer: SrsViewer = {
+	url: process.env.SRS_VIEWER_URL || null,
+	username: process.env.SRS_VIEWER_USERNAME || null,
+};
+
 const offen: Offen = {
 	scriptUrl: process.env.OFFEN_SCRIPT_URL || null,
 	accountId: process.env.OFFEN_ACCOUNT_ID || null,
@@ -83,10 +87,14 @@ function verifyRequiredVariables(): void {
 		joined.push("LASTFM_USERNAME");
 	}
 
+	if (srsViewer.url) {
+		joined.push("SRS_VIEWER_USERNAME");
+	}
+
 	for (const key of joined) {
 		const value = process.env[key];
 		if (value === undefined || value.trim() === "") {
-			echo.error(`Missing or empty environment variable: ${key}`);
+			process.stderr.write(`Missing or empty environment variable: ${key}\n`);
 			hasError = true;
 		}
 	}
@@ -105,6 +113,7 @@ export {
 	projectLinks,
 	aniList,
 	lastFm,
+	srsViewer,
 	offen,
 	site,
 	verifyRequiredVariables,

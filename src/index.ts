@@ -1,5 +1,3 @@
-import { echo } from "@atums/echo";
-
 import { verifyRequiredVariables } from "#environment";
 import { serverHandler } from "#server";
 import { startAniListCache } from "#services/anilist";
@@ -8,6 +6,7 @@ import { startBooksCache } from "#services/audiobookshelf-stats";
 import { startLastFmCache } from "#services/lastfm";
 import { startImageCaches } from "#services/profile-picture";
 import { startProjectLinksCache } from "#services/project-links";
+import { startSrsViewerCache } from "#services/srs-viewer";
 import { startTimezoneCache } from "#services/timezonedb";
 
 async function main(): Promise<void> {
@@ -20,11 +19,12 @@ async function main(): Promise<void> {
 	startAniListCache();
 	startTimezoneCache();
 	startLastFmCache();
+	startSrsViewerCache();
 
 	serverHandler.initialize();
 }
 
 main().catch((error: Error) => {
-	echo.error({ message: "Error initializing the server:", error });
+	process.stderr.write(`Error initializing the server: ${error}\n`);
 	process.exit(1);
 });

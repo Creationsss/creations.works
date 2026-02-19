@@ -255,6 +255,37 @@ interface LastFmResponse {
 	};
 }
 
+interface SrsStream {
+	name: string;
+	app: string;
+	viewers: number;
+	watchUrl: string;
+	previewUrl: string;
+}
+
+interface SrsViewerData {
+	isLive: boolean;
+	streams: SrsStream[];
+}
+
+interface SrsApiStream {
+	id: string;
+	name: string;
+	app: string;
+	publish?: {
+		active?: boolean;
+	};
+	clients?: number;
+	[key: string]: unknown;
+}
+
+interface SrsApiResponse {
+	success: boolean;
+	data?: {
+		streams?: SrsApiStream[];
+	};
+}
+
 interface AudiobookListeningBook {
 	id: string;
 	title: string;
