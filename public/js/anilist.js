@@ -84,6 +84,34 @@ function decodeEntities(text) {
 	return entityDecoder.value;
 }
 
+function appendTextWithLinks(parent, text) {
+	const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+	let lastIndex = 0;
+
+	for (
+		let match = linkPattern.exec(text);
+		match !== null;
+		match = linkPattern.exec(text)
+	) {
+		if (match.index > lastIndex) {
+			parent.appendChild(
+				document.createTextNode(text.slice(lastIndex, match.index)),
+			);
+		}
+		const link = document.createElement("a");
+		link.href = match[2];
+		link.textContent = match[1];
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		parent.appendChild(link);
+		lastIndex = linkPattern.lastIndex;
+	}
+
+	if (lastIndex < text.length) {
+		parent.appendChild(document.createTextNode(text.slice(lastIndex)));
+	}
+}
+
 function getTitle(media) {
 	return media.title.english || media.title.romaji || media.title.native;
 }
@@ -633,7 +661,11 @@ function showCharacterModal(characterId) {
 		if (char.dateOfBirth.year) birthday += `, ${char.dateOfBirth.year}`;
 		charDetails.push(`birthday: ${birthday.trim()}`);
 	}
-	if (char.age) charDetails.push(`age: ${char.age}`);
+	if (char.age) {
+		const isInitialAge = char.age.endsWith("-");
+		const age = char.age.replace(/-$/, "");
+		charDetails.push(`${isInitialAge ? "initial age" : "age"}: ${age}`);
+	}
 	if (char.gender) charDetails.push(`gender: ${char.gender}`);
 	if (char.bloodType) charDetails.push(`blood type: ${char.bloodType}`);
 
@@ -667,11 +699,11 @@ function showCharacterModal(characterId) {
 			const text = decodeEntities(parts[i].trim());
 			if (!text) continue;
 			if (i % 2 === 0) {
-				synopsis.appendChild(document.createTextNode(text));
+				appendTextWithLinks(synopsis, text);
 			} else {
 				const spoiler = document.createElement("span");
 				spoiler.className = "desc-spoiler";
-				spoiler.textContent = text;
+				appendTextWithLinks(spoiler, text);
 				spoiler.addEventListener("click", () => {
 					spoiler.classList.toggle("revealed");
 				});

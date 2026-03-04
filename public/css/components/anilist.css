@@ -611,6 +611,16 @@
 	margin-bottom: var(--spacing-lg);
 }
 
+.anime-modal-synopsis a {
+	color: var(--accent-primary);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.anime-modal-synopsis a:hover {
+	opacity: 0.8;
+}
+
 .anime-modal-synopsis:empty::before {
 	content: "no synopsis available";
 	font-style: italic;
