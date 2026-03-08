@@ -276,6 +276,9 @@ interface SrsApiStream {
 		active?: boolean;
 	};
 	clients?: number;
+	backendId?: string;
+	backendName?: string;
+	backendPublic?: string;
 	[key: string]: unknown;
 }
 

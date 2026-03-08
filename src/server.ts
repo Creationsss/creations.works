@@ -48,17 +48,27 @@ class ServerHandler {
 	}
 
 	private logRoutes(echo: Echo): void {
-		echo.info("Available routes:");
+		const routes = Object.entries(this.router.routes);
+		const errors: string[] = [];
 
-		const sortedRoutes: [string, string][] = Object.entries(
-			this.router.routes,
-		).sort(([pathA]: [string, string], [pathB]: [string, string]) =>
-			pathA.localeCompare(pathB),
-		);
-
-		for (const [path, filePath] of sortedRoutes) {
-			echo.info(`Route: ${path}, File: ${filePath}`);
+		for (const [path, filePath] of routes) {
+			try {
+				require(filePath);
+			} catch {
+				errors.push(path);
+			}
 		}
+
+		if (errors.length > 0) {
+			echo.error(`Failed to load ${errors.length} route(s):`);
+			for (const path of errors) {
+				echo.error(`  ${path}`);
+			}
+		}
+
+		echo.info(
+			`Loaded ${routes.length - errors.length}/${routes.length} routes`,
+		);
 	}
 
 	private async serveStaticFile(
@@ -118,7 +128,7 @@ class ServerHandler {
 		}
 
 		echo.custom(`${request.method}`, `${response.status}`, [
-			request.url,
+			pathname,
 			`${(performance.now() - request.startPerf).toFixed(2)}ms`,
 			ip || "unknown",
 		]);

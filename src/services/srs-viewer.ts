@@ -77,12 +77,16 @@ class SrsViewerService extends CachedService<SrsViewerData> {
 				activeStreams.map(async (stream) => {
 					const viewers = await this.fetchViewerCount(baseUrl, stream.name);
 
+					const backendParam = stream.backendId
+						? `?backend=${encodeURIComponent(stream.backendId)}`
+						: "";
+
 					return {
 						name: stream.name,
 						app: stream.app,
 						viewers,
 						watchUrl: `${baseUrl}/watch/${stream.name}`,
-						previewUrl: `${baseUrl}/api/preview/${stream.name}`,
+						previewUrl: `${baseUrl}/api/preview/${stream.name}${backendParam}`,
 					};
 				}),
 			);
