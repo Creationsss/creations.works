@@ -22,9 +22,7 @@ document.addEventListener("mousemove", (e) => {
 const createSnowflake = () => {
 	if (snowflakes.length >= maxSnowflakes) {
 		const oldestSnowflake = snowflakes.shift();
-		if (oldestSnowflake?.parentNode) {
-			snowContainer.removeChild(oldestSnowflake);
-		}
+		oldestSnowflake?.remove();
 	}
 
 	const snowflake = document.createElement("div");
@@ -55,7 +53,8 @@ const createSnowflake = () => {
 	snowContainer.appendChild(snowflake);
 };
 
-setInterval(createSnowflake, UI.SNOWFLAKE_CREATION_INTERVAL);
+let spawnInterval = null;
+let rafId = null;
 
 function updateSnowflakes() {
 	for (let i = snowflakes.length - 1; i >= 0; i--) {
@@ -83,7 +82,7 @@ function updateSnowflakes() {
 		snowflake.style.top = `${snowflake.y}px`;
 
 		if (snowflake.y > window.innerHeight) {
-			snowContainer.removeChild(snowflake);
+			snowflake.remove();
 			snowflakes.splice(i, 1);
 			continue;
 		}
@@ -96,7 +95,35 @@ function updateSnowflakes() {
 		}
 	}
 
-	requestAnimationFrame(updateSnowflakes);
+	rafId = requestAnimationFrame(updateSnowflakes);
 }
 
-updateSnowflakes();
+function start() {
+	if (spawnInterval === null) {
+		spawnInterval = setInterval(
+			createSnowflake,
+			UI.SNOWFLAKE_CREATION_INTERVAL,
+		);
+	}
+	if (rafId === null) {
+		rafId = requestAnimationFrame(updateSnowflakes);
+	}
+}
+
+function stop() {
+	if (spawnInterval !== null) {
+		clearInterval(spawnInterval);
+		spawnInterval = null;
+	}
+	if (rafId !== null) {
+		cancelAnimationFrame(rafId);
+		rafId = null;
+	}
+}
+
+document.addEventListener("visibilitychange", () => {
+	if (document.hidden) stop();
+	else start();
+});
+
+start();

@@ -14,9 +14,8 @@
 
 		<script type="module" src="/public/js/cats.js" defer></script>
 		<script type="module" src="/public/js/snow.js" defer></script>
-		<script src="/public/js/audiobook-listening.js" defer></script>
-		<script src="/public/js/nowplaying.js" defer></script>
-		<script src="/public/js/srs-streams.js" defer></script>
+		<script type="module" src="/public/js/audiobook-listening.js"></script>
+		<script type="module" src="/public/js/nowplaying.js"></script>
 		<script
 			async
 			src="{{OFFEN_SCRIPT_URL}}"
@@ -61,14 +60,6 @@
 							<span class="audiobook-listening-time"></span>
 						</div>
 					</div>
-
-					<a class="srs-streaming" id="srs-streaming" href="" target="_blank" rel="noopener noreferrer" aria-label="Stream">
-						<img class="srs-streaming-preview" src="" alt="" />
-						<div class="srs-streaming-info">
-							<span class="srs-streaming-name"></span>
-							<span class="srs-streaming-viewers"></span>
-						</div>
-					</a>
 
 					<div class="now-playing" id="now-playing">
 						<img class="now-playing-cover" src="/public/assets/default-album.svg" alt="" />

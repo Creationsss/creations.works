@@ -1,84 +1,49 @@
-import { MAX_POLL_ATTEMPTS, POLL_INTERVAL, UI } from "./utils/constants.js";
+import { UI } from "./utils/constants.js";
+import { delegate, escapeHtml } from "./utils/dom.js";
 
+const STORAGE_KEY = "timezone24HourFormat";
 let timezoneData = null;
-let timezoneError = null;
-let timezoneUpdateInterval = null;
+let is24HourFormat = loadFormatPreference();
+let updateInterval = null;
 
-const isBrowserLocale24h = () =>
-	!new Intl.DateTimeFormat(navigator.language, { hour: "numeric" })
+function loadFormatPreference() {
+	const stored = localStorage.getItem(STORAGE_KEY);
+	if (stored !== null) return stored === "true";
+	return !new Intl.DateTimeFormat(navigator.language, { hour: "numeric" })
 		.format(0)
 		.match(/AM/);
+}
 
-let is24HourFormat = localStorage.getItem("timezone24HourFormat")
-	? localStorage.getItem("timezone24HourFormat") === "true"
-	: isBrowserLocale24h();
+function hideTimezoneSection() {
+	const section = document.querySelector(".timezone-section");
+	if (section) section.style.display = "none";
+}
 
-fetch("/api/timezonedb")
-	.then((response) => {
+async function fetchTimezone() {
+	try {
+		const response = await fetch("/api/timezonedb");
 		if (!response.ok) {
-			if (response.status === 503) {
-				const timezoneSection = document.querySelector(".timezone-section");
-				if (timezoneSection) {
-					timezoneSection.style.display = "none";
-				}
-				return;
-			}
-			throw new Error("Failed to fetch timezone data");
+			if (response.status === 503) hideTimezoneSection();
+			return null;
 		}
-		return response.json();
-	})
-	.then((data) => {
+		const data = await response.json();
 		if (data?.error) {
 			if (data.error === "TimezoneDB service unavailable") {
-				const timezoneSection = document.querySelector(".timezone-section");
-				if (timezoneSection) {
-					timezoneSection.style.display = "none";
-				}
-				return;
+				hideTimezoneSection();
 			}
-			timezoneError = "Timezone data unavailable";
-			return;
+			return null;
 		}
-		if (data) {
-			timezoneData = data;
-		}
-	})
-	.catch(() => {
-		timezoneError = "Failed to load timezone data";
-	});
-
-let timezonePollCount = 0;
-
-function updateTimezoneInfo() {
-	const timezoneContainer = document.getElementById("timezone-info");
-	const timezoneSection = document.querySelector(".timezone-section");
-
-	if (timezoneError || !timezoneContainer) {
-		if (timezoneSection) {
-			timezoneSection.style.display = "none";
-		}
-		return;
-	}
-
-	if (timezoneData) {
-		renderTimezoneWithTime(timezoneData);
-
-		setTimeout(() => {
-			timezoneContainer.classList.add("loaded");
-		}, 10);
-		return;
-	}
-
-	timezonePollCount++;
-	if (timezonePollCount < MAX_POLL_ATTEMPTS) {
-		setTimeout(updateTimezoneInfo, POLL_INTERVAL);
+		return data ?? null;
+	} catch {
+		return null;
 	}
 }
 
-function renderTimezoneWithTime(data) {
-	const container = document.getElementById("timezone-info");
-
-	const realContentHTML = `
+function renderTimezone(container, data) {
+	container.replaceChildren();
+	container.insertAdjacentHTML(
+		"beforeend",
+		`
 		<div class="timezone-info skeleton-loading">
 			<div class="timezone-location">
 				<span class="timezone-label skeleton-text skeleton-text-sm"></span>
@@ -92,23 +57,14 @@ function renderTimezoneWithTime(data) {
 		<div class="timezone-info">
 			<div class="timezone-location">
 				<span class="timezone-label">timezone:</span>
-				<span class="timezone-value">${data.timezone}</span>
+				<span class="timezone-value">${escapeHtml(data.timezone)}</span>
 			</div>
-			<div class="timezone-time" onclick="toggleTimeFormat()">
+			<div class="timezone-time" data-action="toggle-time-format">
 				<span class="timezone-label">current time:</span>
 				<span class="timezone-value" id="current-time">--:--</span>
 			</div>
 		</div>
-	`;
-	container.innerHTML = realContentHTML;
-
-	updateCurrentTime();
-	if (timezoneUpdateInterval) {
-		clearInterval(timezoneUpdateInterval);
-	}
-	timezoneUpdateInterval = setInterval(
-		updateCurrentTime,
-		UI.TIMEZONE_UPDATE_INTERVAL,
+	`,
 	);
 }
 
@@ -116,36 +72,53 @@ function updateCurrentTime() {
 	if (!timezoneData) return;
 
 	const now = new Date();
-	let timeString;
-
-	if (is24HourFormat) {
-		timeString = now.toLocaleTimeString("en-GB", {
-			timeZone: timezoneData.timezone,
-			hour12: false,
-			hour: "2-digit",
-			minute: "2-digit",
-		});
-	} else {
-		timeString = now.toLocaleTimeString("en-US", {
-			timeZone: timezoneData.timezone,
-			hour12: true,
-			hour: "numeric",
-			minute: "2-digit",
-		});
-	}
+	const timeString = is24HourFormat
+		? now.toLocaleTimeString("en-GB", {
+				timeZone: timezoneData.timezone,
+				hour12: false,
+				hour: "2-digit",
+				minute: "2-digit",
+			})
+		: now.toLocaleTimeString("en-US", {
+				timeZone: timezoneData.timezone,
+				hour12: true,
+				hour: "numeric",
+				minute: "2-digit",
+			});
 
 	const timeElement = document.getElementById("current-time");
-	if (timeElement) {
-		timeElement.textContent = timeString;
-	}
+	if (timeElement) timeElement.textContent = timeString;
 }
 
-function toggleTimeFormat() {
-	is24HourFormat = !is24HourFormat;
-	localStorage.setItem("timezone24HourFormat", is24HourFormat.toString());
+function startClock() {
+	if (updateInterval) clearInterval(updateInterval);
 	updateCurrentTime();
+	updateInterval = setInterval(updateCurrentTime, UI.TIMEZONE_UPDATE_INTERVAL);
 }
 
-window.toggleTimeFormat = toggleTimeFormat;
+async function init() {
+	const container = document.getElementById("timezone-info");
+	if (!container) return;
 
-document.addEventListener("DOMContentLoaded", updateTimezoneInfo);
+	timezoneData = await fetchTimezone();
+	if (!timezoneData) {
+		hideTimezoneSection();
+		return;
+	}
+
+	renderTimezone(container, timezoneData);
+	requestAnimationFrame(() => container.classList.add("loaded"));
+	startClock();
+}
+
+delegate(document, "click", "[data-action=toggle-time-format]", () => {
+	is24HourFormat = !is24HourFormat;
+	localStorage.setItem(STORAGE_KEY, is24HourFormat.toString());
+	updateCurrentTime();
+});
+
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", init, { once: true });
+} else {
+	init();
+}

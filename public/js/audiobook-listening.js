@@ -1,86 +1,47 @@
-(() => {
-	const POLL_INTERVAL = 30000;
-	let intervalId = null;
+import { createPoller } from "./utils/poller.js";
+import { formatTimeRemaining } from "./utils/time.js";
 
-	function formatTimeRemaining(currentTime, duration) {
-		const remaining = duration - currentTime;
-		if (remaining <= 0) return "0:00 left";
+function updateAudiobookListening(data) {
+	const container = document.getElementById("audiobook-listening");
+	if (!container) return;
 
-		const hours = Math.floor(remaining / 3600);
-		const minutes = Math.floor((remaining % 3600) / 60);
-
-		if (hours > 0) {
-			return `${hours}h ${minutes}m left`;
-		}
-		return `${minutes}m left`;
+	if (!data?.isListening || !data.book) {
+		container.classList.remove("visible");
+		return;
 	}
 
-	function updateAudiobookListening(data) {
-		const container = document.getElementById("audiobook-listening");
-		if (!container) return;
+	const book = data.book;
+	const cover = container.querySelector(".audiobook-listening-cover");
+	const title = container.querySelector(".audiobook-listening-title");
+	const author = container.querySelector(".audiobook-listening-author");
+	const progressBar = container.querySelector(
+		".audiobook-listening-progress-fill",
+	);
+	const timeInfo = container.querySelector(".audiobook-listening-time");
 
-		if (!data || !data.isListening || !data.book) {
-			container.classList.remove("visible");
-			return;
-		}
+	if (title) title.textContent = book.title;
+	if (author) author.textContent = book.author;
 
-		const book = data.book;
-		const cover = container.querySelector(".audiobook-listening-cover");
-		const title = container.querySelector(".audiobook-listening-title");
-		const author = container.querySelector(".audiobook-listening-author");
-		const progressBar = container.querySelector(
-			".audiobook-listening-progress-fill",
-		);
-		const timeInfo = container.querySelector(".audiobook-listening-time");
-
-		if (title) title.textContent = book.title;
-		if (author) author.textContent = book.author;
-
-		if (cover) {
-			cover.src = book.cover || "/public/assets/default-book.svg";
-			cover.alt = book.title;
-		}
-
-		if (progressBar) {
-			const progressPercent = Math.min(book.progress * 100, 100);
-			progressBar.style.width = `${progressPercent}%`;
-		}
-
-		if (timeInfo) {
-			const progressPercent = Math.round(book.progress * 100);
-			const remaining = formatTimeRemaining(book.currentTime, book.duration);
-			timeInfo.textContent = `${progressPercent}% · ${remaining}`;
-		}
-
-		container.classList.add("visible");
+	if (cover) {
+		cover.src = book.cover || "/public/assets/default-book.svg";
+		cover.alt = book.title;
 	}
 
-	async function fetchAudiobookListening() {
-		try {
-			const response = await fetch("/api/audiobookshelf/listening");
-			if (!response.ok) return;
-
-			const data = await response.json();
-			if (data.error) return;
-
-			updateAudiobookListening(data);
-		} catch {
-			return;
-		}
+	if (progressBar) {
+		const progressPercent = Math.min(book.progress * 100, 100);
+		progressBar.style.width = `${progressPercent}%`;
 	}
 
-	function init() {
-		if (intervalId) {
-			clearInterval(intervalId);
-		}
-
-		fetchAudiobookListening();
-		intervalId = setInterval(fetchAudiobookListening, POLL_INTERVAL);
+	if (timeInfo) {
+		const progressPercent = Math.round(book.progress * 100);
+		const remaining = formatTimeRemaining(book.currentTime, book.duration);
+		timeInfo.textContent = `${progressPercent}% · ${remaining}`;
 	}
 
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", init);
-	} else {
-		init();
-	}
-})();
+	container.classList.add("visible");
+}
+
+createPoller({
+	url: "/api/audiobookshelf/listening",
+	update: updateAudiobookListening,
+});

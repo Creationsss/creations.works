@@ -41,18 +41,18 @@ function createFloatingCat(usedCats) {
 	document.body.appendChild(cat);
 
 	setTimeout(() => {
-		if (cat.parentNode) {
-			cat.parentNode.removeChild(cat);
-		}
+		cat.remove();
 	}, UI.CAT_LIFETIME);
 }
 
-catsTrigger.addEventListener("mouseenter", () => {
-	const usedCats = [];
-	const numberOfCats =
-		Math.floor(Math.random() * (UI.CAT_COUNT_MAX - UI.CAT_COUNT_MIN + 1)) +
-		UI.CAT_COUNT_MIN;
-	for (let i = 0; i < numberOfCats; i++) {
-		setTimeout(() => createFloatingCat(usedCats), i * UI.CAT_DELAY);
-	}
-});
+if (catsTrigger) {
+	catsTrigger.addEventListener("mouseenter", () => {
+		const usedCats = [];
+		const numberOfCats =
+			Math.floor(Math.random() * (UI.CAT_COUNT_MAX - UI.CAT_COUNT_MIN + 1)) +
+			UI.CAT_COUNT_MIN;
+		for (let i = 0; i < numberOfCats; i++) {
+			setTimeout(() => createFloatingCat(usedCats), i * UI.CAT_DELAY);
+		}
+	});
+}

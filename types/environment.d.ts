@@ -49,11 +49,6 @@ type Offen = {
 	accountId: string | null;
 };
 
-type SrsViewer = {
-	url: string | null;
-	username: string | null;
-};
-
 type Site = {
 	name: string;
 };

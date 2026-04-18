@@ -1,164 +1,122 @@
-function formatDuration(seconds) {
-	const hours = Math.floor(seconds / 3600);
-	const minutes = Math.floor((seconds % 3600) / 60);
-	if (hours === 0) return `${minutes}m`;
-	return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+import { UI } from "./utils/constants.js";
+import { delegate, escapeHtml } from "./utils/dom.js";
+import { createPaginatedGrid } from "./utils/pagination.js";
+import { formatDuration } from "./utils/time.js";
+
+const BOOKS_PER_PAGE = 24;
+const FALLBACK_FINISHED_HOURS = 20;
+const FALLBACK_PROGRESS_PERCENT = 95;
+const ESTIMATED_BOOK_DURATION_SECONDS = 12 * 3600;
+
+let currentlyReadingBooks = [];
+let bookDescriptionTimeout = null;
+
+const booksGrid = createPaginatedGrid({
+	gridId: "all-books-grid",
+	paginationId: "books-pagination",
+	pageSize: BOOKS_PER_PAGE,
+	renderGrid: (grid, items) => {
+		grid.replaceChildren();
+		grid.insertAdjacentHTML(
+			"beforeend",
+			items.map(renderBookGridItem).join(""),
+		);
+	},
+	matchItem: (book, term) => {
+		return (
+			book.title.toLowerCase().includes(term) ||
+			book.author.toLowerCase().includes(term) ||
+			(book.series?.name || "").toLowerCase().includes(term)
+		);
+	},
+});
+
+function renderBookGridItem(book) {
+	const title = escapeHtml(book.title);
+	const author = escapeHtml(book.author);
+	const seriesName = book.series?.name ? escapeHtml(book.series.name) : "";
+	const finishedDate =
+		book.finishedAt && book.finishedAt > 0
+			? escapeHtml(new Date(book.finishedAt).toLocaleDateString())
+			: null;
+
+	return `
+		<div class="book-grid-item">
+			${
+				book.coverUrl
+					? `<div class="book-grid-cover">
+				<img src="${escapeHtml(book.coverUrl)}" alt="${title} cover" loading="lazy" onerror="this.style.display='none'" />
+			</div>`
+					: ""
+			}
+			<div class="book-grid-info">
+				<span class="book-grid-title">${title}</span>
+				<span class="book-grid-author">by ${author}</span>
+				${seriesName ? `<span class="book-grid-series">${seriesName}</span>` : ""}
+				${finishedDate ? `<span class="book-grid-stats">finished ${finishedDate}</span>` : ""}
+			</div>
+		</div>
+	`;
 }
 
-let audiobookshelfData = null;
-let audiobookshelfError = null;
-
-fetch("/api/audiobookshelf/stats")
-	.then((response) => {
-		if (!response.ok) throw new Error("Failed to fetch stats");
-		return response.json();
-	})
-	.then((data) => {
-		if (data.error) {
-			audiobookshelfError = data.error;
-			return;
+function countProgress(mediaProgress, books) {
+	if (mediaProgress.length > 0) {
+		let finished = 0;
+		let inProgress = 0;
+		for (const progress of mediaProgress) {
+			if (progress.isFinished) finished++;
+			else if (progress.progress > 0) inProgress++;
 		}
-		audiobookshelfData = data;
-	})
-	.catch(() => {
-		audiobookshelfError = "Failed to load audiobook stats";
-	});
+		return { finished, inProgress };
+	}
 
-let audiobookshelfPollCount = 0;
-const MAX_POLL_ATTEMPTS = 200;
-
-function updateAudiobookshelfStats() {
-	const statsContainer = document.getElementById("audiobookshelf-stats");
-
-	if (audiobookshelfError) {
-		if (statsContainer) {
-			statsContainer.innerHTML = `
-				<div class="error-message">
-					<h3>unable to load audiobook stats</h3>
-					<p>${audiobookshelfError}</p>
-				</div>
-			`;
-			statsContainer.style.opacity = "1";
+	let finished = 0;
+	let inProgress = 0;
+	for (const book of books) {
+		const duration = book.mediaMetadata?.duration;
+		if (duration && duration > 0) {
+			const progress = (book.timeListening / duration) * 100;
+			if (progress >= FALLBACK_PROGRESS_PERCENT) finished++;
+			else if (progress > 0) inProgress++;
+		} else {
+			const hoursListened = book.timeListening / 3600;
+			if (hoursListened >= FALLBACK_FINISHED_HOURS) finished++;
+			else if (hoursListened > 0) inProgress++;
 		}
-		return;
 	}
-
-	if (audiobookshelfData) {
-		if (!statsContainer) return;
-		statsContainer.style.display = "block";
-		renderAudiobookshelfStats(audiobookshelfData);
-		setTimeout(() => {
-			statsContainer.style.opacity = "1";
-		}, 10);
-		return;
-	}
-
-	audiobookshelfPollCount++;
-	if (audiobookshelfPollCount < MAX_POLL_ATTEMPTS) {
-		setTimeout(updateAudiobookshelfStats, 50);
-	}
+	return { finished, inProgress };
 }
 
-function renderAudiobookshelfStats(data) {
-	const container = document.getElementById("audiobookshelf-stats");
-
-	const totalHours = Math.round(data.totalTime / 3600);
-	const totalDays = Math.round(data.totalTime / 86400);
-	const totalBooks = data.totalBooks || 0;
-	const mediaProgress = data.mediaProgress || [];
-	const books = Object.values(data.items || {});
-	const booksFinished = mediaProgress.filter(
-		(progress) => progress.isFinished,
-	).length;
-	const booksInProgress = mediaProgress.filter(
-		(progress) => !progress.isFinished && progress.progress > 0,
-	).length;
-	const fallbackFinished = books.filter((book) => {
-		if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
-			const progress = (book.timeListening / book.mediaMetadata.duration) * 100;
-			return progress >= 95;
-		}
-		const hoursListened = book.timeListening / 3600;
-		return hoursListened >= 20;
-	}).length;
-
-	const fallbackInProgress = books.filter((book) => {
-		if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
-			const progress = (book.timeListening / book.mediaMetadata.duration) * 100;
-			return progress > 0 && progress < 95;
-		}
-		const hoursListened = book.timeListening / 3600;
-		return hoursListened > 0 && hoursListened < 20;
-	}).length;
-	const finalBooksFinished =
-		mediaProgress.length > 0 ? booksFinished : fallbackFinished;
-	const finalBooksInProgress =
-		mediaProgress.length > 0 ? booksInProgress : fallbackInProgress;
-	const booksStarted = finalBooksFinished + finalBooksInProgress;
-	const completionRate =
-		booksStarted > 0
-			? Math.round((finalBooksFinished / booksStarted) * 100)
-			: 0;
+function collectTaxonomy(books) {
 	const uniqueAuthors = new Set();
 	const uniqueSeries = new Set();
 	const uniqueGenres = new Set();
 	const publishers = new Set();
 	const seriesStats = {};
 
-	const dailyStats = {};
-	const sessionsForDailyStats = data.recentSessions || [];
-
-	sessionsForDailyStats.forEach((session) => {
-		const date = session.date;
-		if (!dailyStats[date]) {
-			dailyStats[date] = 0;
-		}
-		dailyStats[date] += session.timeListening || 0;
-	});
-
-	const dailyTimes = Object.values(dailyStats);
-	const bestDaySeconds = dailyTimes.length > 0 ? Math.max(...dailyTimes) : 0;
-	const bestDayTime = formatDuration(bestDaySeconds);
-
-	const todaySeconds = data.today || 0;
-	const todayTime = formatDuration(todaySeconds);
-
-	const accountCreated = data.user?.createdAt
-		? new Date(data.user.createdAt)
-		: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-	const daysSinceCreated = Math.max(
-		1,
-		Math.floor((Date.now() - accountCreated.getTime()) / (24 * 60 * 60 * 1000)),
-	);
-	const avgDaySeconds = data.totalTime / daysSinceCreated;
-	const avgDayTime = formatDuration(avgDaySeconds);
-
-	books.forEach((book) => {
+	for (const book of books) {
 		if (book.mediaMetadata?.authors) {
-			book.mediaMetadata.authors.forEach((author) => {
+			for (const author of book.mediaMetadata.authors) {
 				uniqueAuthors.add(author.name);
-			});
+			}
 		}
 		if (book.mediaMetadata?.series) {
-			book.mediaMetadata.series.forEach((series) => {
+			for (const series of book.mediaMetadata.series) {
 				uniqueSeries.add(series.name);
-				if (!seriesStats[series.name]) {
-					seriesStats[series.name] = {
+				let stat = seriesStats[series.name];
+				if (!stat) {
+					stat = {
 						time: 0,
 						books: 0,
 						id: series.id,
-						coverUrls: [],
+						coverUrls: new Set(),
 					};
+					seriesStats[series.name] = stat;
 				}
-				seriesStats[series.name].time += book.timeListening;
-				seriesStats[series.name].books += 1;
-				if (
-					book.coverUrl &&
-					!seriesStats[series.name].coverUrls.includes(book.coverUrl)
-				) {
-					seriesStats[series.name].coverUrls.push(book.coverUrl);
-				}
-			});
+				stat.time += book.timeListening;
+				stat.books += 1;
+				if (book.coverUrl) stat.coverUrls.add(book.coverUrl);
+			}
 		}
 		if (book.mediaMetadata?.genres) {
 			for (const genre of book.mediaMetadata.genres) {
@@ -168,146 +126,186 @@ function renderAudiobookshelfStats(data) {
 		if (book.mediaMetadata?.publisher) {
 			publishers.add(book.mediaMetadata.publisher);
 		}
-	});
+	}
 
-	const allFinishedBooks = [];
+	return { uniqueAuthors, uniqueSeries, uniqueGenres, publishers, seriesStats };
+}
 
-	const finishedItems = mediaProgress.filter((progress) => progress.isFinished);
+function buildFinishedBooks(data, mediaProgress) {
+	const list = [];
+	for (const progress of mediaProgress) {
+		if (!progress.isFinished) continue;
+		const book = data.items[progress.libraryItemId];
+		if (!book) continue;
 
-	finishedItems.forEach((progressItem) => {
-		const book = data.items[progressItem.libraryItemId];
-		if (!book) return;
-
-		const bookData = {
+		list.push({
 			title: book.mediaMetadata?.title || "Unknown Title",
 			author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
 			coverUrl: book.coverUrl,
-			finishedAt: progressItem.finishedAt,
-			id: progressItem.libraryItemId,
+			finishedAt: progress.finishedAt,
+			id: progress.libraryItemId,
 			series: book.mediaMetadata?.series?.[0] || null,
-		};
+		});
+	}
 
-		allFinishedBooks.push(bookData);
-	});
-
-	allFinishedBooks.sort((a, b) => {
+	list.sort((a, b) => {
 		const aDate = a.finishedAt && a.finishedAt > 0 ? a.finishedAt : 0;
 		const bDate = b.finishedAt && b.finishedAt > 0 ? b.finishedAt : 0;
-
-		if (aDate && bDate) {
-			return bDate - aDate;
-		}
-		if (aDate && !bDate) return -1;
-		if (!aDate && bDate) return 1;
-
+		if (aDate && bDate) return bDate - aDate;
+		if (aDate) return -1;
+		if (bDate) return 1;
 		return a.title.localeCompare(b.title);
 	});
 
-	let currentlyReading = [];
+	return list;
+}
 
-	if (mediaProgress.length > 0) {
-		const inProgressItems = mediaProgress
-			.filter(
-				(progress) =>
-					!progress.isFinished &&
-					progress.progress > 0 &&
-					!progress.hideFromContinueListening &&
-					data.items[progress.libraryItemId],
-			)
-			.sort((a, b) => b.lastUpdate - a.lastUpdate)
-			.slice(0, 5);
-		const seenTitles = new Set();
+function buildCurrentlyReadingFromProgress(data, mediaProgress) {
+	const inProgress = mediaProgress
+		.filter(
+			(p) =>
+				!p.isFinished &&
+				p.progress > 0 &&
+				!p.hideFromContinueListening &&
+				data.items[p.libraryItemId],
+		)
+		.sort((a, b) => b.lastUpdate - a.lastUpdate)
+		.slice(0, 5);
 
-		currentlyReading = inProgressItems
-			.map((progressItem) => {
-				const book = data.items[progressItem.libraryItemId];
+	const seen = new Set();
+	const out = [];
+	for (const p of inProgress) {
+		const book = data.items[p.libraryItemId];
+		const title = book.mediaMetadata?.title || "Unknown Title";
+		if (seen.has(title)) continue;
+		seen.add(title);
 
-				const title = book.mediaMetadata?.title || "Unknown Title";
-				if (seenTitles.has(title)) return null;
-				seenTitles.add(title);
+		const progressPercent = Math.round(p.progress * 100);
+		const remainingSeconds = Math.max(0, p.duration - p.currentTime);
+		const timeRemaining =
+			p.duration > 0 ? formatDuration(remainingSeconds) : "0h";
 
-				const progressPercent = Math.round(progressItem.progress * 100);
-				const remainingSeconds = Math.max(
-					0,
-					progressItem.duration - progressItem.currentTime,
-				);
-				const timeRemaining =
-					progressItem.duration > 0 ? formatDuration(remainingSeconds) : "0h";
-
-				return {
-					title,
-					author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
-					series: book.mediaMetadata?.series?.[0]?.name || null,
-					progress: Math.min(Math.max(progressPercent, 0), 100),
-					timeRemaining,
-					totalHours: Math.round(progressItem.currentTime / 3600),
-					coverUrl: book.coverUrl,
-					description: book.mediaMetadata?.description || null,
-					id: progressItem.libraryItemId,
-				};
-			})
-			.filter((item) => item !== null);
-
-		currentlyReadingBooks = currentlyReading;
-	} else {
-		const seenTitles = new Set();
-		currentlyReading = books
-			.filter((book) => {
-				if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
-					const progress =
-						(book.timeListening / book.mediaMetadata.duration) * 100;
-					return progress > 0 && progress < 90;
-				}
-				const hoursListened = book.timeListening / 3600;
-				return hoursListened > 0 && hoursListened < 8;
-			})
-			.sort((a, b) => b.timeListening - a.timeListening)
-			.map((book) => {
-				const title = book.mediaMetadata?.title || "Unknown Title";
-				if (seenTitles.has(title)) return null;
-				seenTitles.add(title);
-
-				let progress = 0;
-				let timeRemaining = "0h";
-
-				if (book.mediaMetadata?.duration && book.mediaMetadata.duration > 0) {
-					progress = Math.round(
-						(book.timeListening / book.mediaMetadata.duration) * 100,
-					);
-					timeRemaining = formatDuration(
-						Math.max(0, book.mediaMetadata.duration - book.timeListening),
-					);
-				} else {
-					const estimatedDuration = 12 * 3600;
-					progress = Math.round((book.timeListening / estimatedDuration) * 100);
-					timeRemaining = formatDuration(
-						Math.max(0, estimatedDuration - book.timeListening),
-					);
-				}
-
-				return {
-					title,
-					author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
-					series: book.mediaMetadata?.series?.[0]?.name || null,
-					progress: Math.min(Math.max(progress, 0), 100),
-					timeRemaining,
-					totalHours: Math.round(book.timeListening / 3600),
-					coverUrl: book.coverUrl,
-					description: book.mediaMetadata?.description || null,
-					id: book.id,
-				};
-			})
-			.filter((item) => item !== null)
-			.slice(0, 5);
-
-		currentlyReadingBooks = currentlyReading;
+		out.push({
+			title,
+			author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
+			series: book.mediaMetadata?.series?.[0]?.name || null,
+			progress: Math.min(Math.max(progressPercent, 0), 100),
+			timeRemaining,
+			totalHours: Math.round(p.currentTime / 3600),
+			coverUrl: book.coverUrl,
+			description: book.mediaMetadata?.description || null,
+			id: p.libraryItemId,
+		});
 	}
+	return out;
+}
 
-	const recentSessions = (data.recentSessions || [])
-		.filter((session) => {
-			const totalMinutes = Math.round(session.timeListening / 60);
-			return totalMinutes > 0;
+function buildCurrentlyReadingFromItems(books) {
+	const seen = new Set();
+	return books
+		.filter((book) => {
+			const duration = book.mediaMetadata?.duration;
+			if (duration && duration > 0) {
+				const progress = (book.timeListening / duration) * 100;
+				return progress > 0 && progress < 90;
+			}
+			const hours = book.timeListening / 3600;
+			return hours > 0 && hours < 8;
 		})
+		.sort((a, b) => b.timeListening - a.timeListening)
+		.map((book) => {
+			const title = book.mediaMetadata?.title || "Unknown Title";
+			if (seen.has(title)) return null;
+			seen.add(title);
+
+			const duration = book.mediaMetadata?.duration;
+			let progress;
+			let timeRemaining;
+			if (duration && duration > 0) {
+				progress = Math.round((book.timeListening / duration) * 100);
+				timeRemaining = formatDuration(
+					Math.max(0, duration - book.timeListening),
+				);
+			} else {
+				progress = Math.round(
+					(book.timeListening / ESTIMATED_BOOK_DURATION_SECONDS) * 100,
+				);
+				timeRemaining = formatDuration(
+					Math.max(0, ESTIMATED_BOOK_DURATION_SECONDS - book.timeListening),
+				);
+			}
+
+			return {
+				title,
+				author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
+				series: book.mediaMetadata?.series?.[0]?.name || null,
+				progress: Math.min(Math.max(progress, 0), 100),
+				timeRemaining,
+				totalHours: Math.round(book.timeListening / 3600),
+				coverUrl: book.coverUrl,
+				description: book.mediaMetadata?.description || null,
+				id: book.id,
+			};
+		})
+		.filter(Boolean)
+		.slice(0, 5);
+}
+
+function renderCurrentlyReading(list) {
+	if (!list.length) return "";
+	const items = list
+		.map((book) => {
+			const title = escapeHtml(book.title);
+			const author = escapeHtml(book.author);
+			const series = book.series ? escapeHtml(book.series) : "";
+			const timeRemaining = escapeHtml(book.timeRemaining);
+			return `
+			<div class="reading-item" data-book-id="${escapeHtml(book.id || "")}">
+				${
+					book.coverUrl
+						? `<div class="book-cover">
+					<img src="${escapeHtml(book.coverUrl)}" alt="${title} cover" loading="lazy" onerror="this.style.display='none'" />
+				</div>`
+						: ""
+				}
+				<div class="book-content">
+					<div class="book-info">
+						<span class="book-title">${title}</span>
+						<span class="book-author">by ${author}</span>
+						${series ? `<span class="book-series">${series}</span>` : ""}
+					</div>
+					<div class="progress-container">
+						<div class="progress-bar">
+							<div class="progress-fill" style="width: ${book.progress}%"></div>
+						</div>
+						<span class="progress-text"><span class="stat-value">${book.progress}%</span></span>
+					</div>
+					<div class="book-stats">
+						<span class="listened-time"><span class="stat-value">${book.totalHours}h</span> listened</span>
+						${
+							book.timeRemaining !== "0h"
+								? `<span class="time-remaining"><span class="stat-value">${timeRemaining}</span> left</span>`
+								: ""
+						}
+					</div>
+				</div>
+				<div class="book-description" style="display: none;"></div>
+			</div>
+		`;
+		})
+		.join("");
+
+	return `
+		<div class="currently-reading">
+			<h4>currently reading</h4>
+			<div class="reading-list">${items}</div>
+		</div>
+	`;
+}
+
+function renderRecentSessions(data) {
+	const sessions = (data.recentSessions || [])
+		.filter((s) => Math.round(s.timeListening / 60) > 0)
 		.slice(0, 8)
 		.map((session) => {
 			return {
@@ -326,7 +324,122 @@ function renderAudiobookshelfStats(data) {
 			};
 		});
 
-	const statsHTML = `
+	if (!sessions.length) return "";
+
+	const items = sessions
+		.map(
+			(s) => `
+		<div class="session-item">
+			<div class="session-info">
+				<span class="session-title">${escapeHtml(s.title)}</span>
+				<span class="session-author">${escapeHtml(s.author)}</span>
+			</div>
+			<div class="session-meta">
+				<span class="session-duration">${escapeHtml(s.duration)}</span>
+				<span class="session-date">${escapeHtml(s.date)}</span>
+				<span class="session-device">${escapeHtml(s.device)}</span>
+			</div>
+		</div>
+	`,
+		)
+		.join("");
+
+	return `
+		<div class="recent-sessions">
+			<h4>recent listening sessions</h4>
+			<div class="sessions-list">${items}</div>
+		</div>
+	`;
+}
+
+function renderUserProfile(user) {
+	if (!user) return "";
+
+	const memberSince = user.createdAt
+		? escapeHtml(new Date(user.createdAt).toLocaleDateString())
+		: null;
+	const lastActive = user.lastSeen
+		? escapeHtml(new Date(user.lastSeen).toLocaleDateString())
+		: null;
+
+	if (!memberSince && !lastActive) return "";
+
+	return `
+		<div class="user-profile-section">
+			<h4>profile information</h4>
+			<div class="profile-stats">
+				${
+					memberSince
+						? `<div class="profile-stat">
+					<span class="profile-label">member since:</span>
+					<span class="profile-value">${memberSince}</span>
+				</div>`
+						: ""
+				}
+				${
+					lastActive
+						? `<div class="profile-stat">
+					<span class="profile-label">last active:</span>
+					<span class="profile-value">${lastActive}</span>
+				</div>`
+						: ""
+				}
+			</div>
+		</div>
+	`;
+}
+
+function renderStats(data) {
+	const container = document.getElementById("audiobookshelf-stats");
+	if (!container) return;
+
+	const totalHours = Math.round(data.totalTime / 3600);
+	const totalDays = Math.round(data.totalTime / 86400);
+	const totalBooks = data.totalBooks || 0;
+	const mediaProgress = data.mediaProgress || [];
+	const books = Object.values(data.items || {});
+
+	const { finished: finalBooksFinished, inProgress: finalBooksInProgress } =
+		countProgress(mediaProgress, books);
+	const booksStarted = finalBooksFinished + finalBooksInProgress;
+	const completionRate =
+		booksStarted > 0
+			? Math.round((finalBooksFinished / booksStarted) * 100)
+			: 0;
+
+	const { uniqueAuthors, uniqueSeries, uniqueGenres, publishers } =
+		collectTaxonomy(books);
+
+	const dailyStats = {};
+	for (const session of data.recentSessions || []) {
+		dailyStats[session.date] =
+			(dailyStats[session.date] || 0) + (session.timeListening || 0);
+	}
+	const dailyTimes = Object.values(dailyStats);
+	const bestDaySeconds = dailyTimes.length > 0 ? Math.max(...dailyTimes) : 0;
+	const bestDayTime = formatDuration(bestDaySeconds);
+	const todayTime = formatDuration(data.today || 0);
+
+	const accountCreated = data.user?.createdAt
+		? new Date(data.user.createdAt)
+		: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+	const daysSinceCreated = Math.max(
+		1,
+		Math.floor((Date.now() - accountCreated.getTime()) / (24 * 60 * 60 * 1000)),
+	);
+	const avgDayTime = formatDuration(data.totalTime / daysSinceCreated);
+	const booksPerMonth = Math.round(
+		(finalBooksFinished * 30) / Math.max(daysSinceCreated, 30),
+	);
+
+	const finishedBooks = buildFinishedBooks(data, mediaProgress);
+	const currentlyReading =
+		mediaProgress.length > 0
+			? buildCurrentlyReadingFromProgress(data, mediaProgress)
+			: buildCurrentlyReadingFromItems(books);
+	currentlyReadingBooks = currentlyReading;
+
+	const html = `
 		<div class="audiobook-grid main-stats">
 			<div class="audiobook-stat">
 				<span class="stat-number"><span class="stat-value">${totalDays}</span></span>
@@ -354,54 +467,7 @@ function renderAudiobookshelfStats(data) {
 			</div>
 		</div>
 
-		${
-			currentlyReading.length
-				? `
-		<div class="currently-reading">
-			<h4>currently reading</h4>
-			<div class="reading-list">
-				${currentlyReading
-					.map(
-						(book) => `
-					<div class="reading-item" data-book-id="${book.id || ""}" onmouseenter="loadBookDescription(this)" onmouseleave="clearBookTimeout()">
-						${
-							book.coverUrl
-								? `<div class="book-cover">
-							<img src="${book.coverUrl}" alt="${book.title} cover" loading="lazy" onerror="this.style.display='none'">
-						</div>`
-								: ""
-						}
-						<div class="book-content">
-							<div class="book-info">
-								<span class="book-title">${book.title}</span>
-								<span class="book-author">by ${book.author}</span>
-								${book.series ? `<span class="book-series">${book.series}</span>` : ""}
-							</div>
-							<div class="progress-container">
-								<div class="progress-bar">
-									<div class="progress-fill" style="width: ${book.progress}%"></div>
-								</div>
-								<span class="progress-text"><span class="stat-value">${book.progress}%</span></span>
-							</div>
-							<div class="book-stats">
-								<span class="listened-time"><span class="stat-value">${book.totalHours}h</span> listened</span>
-								${
-									book.timeRemaining !== "0h"
-										? `<span class="time-remaining"><span class="stat-value">${book.timeRemaining}</span> left</span>`
-										: ""
-								}
-							</div>
-						</div>
-						<div class="book-description" style="display: none;"></div>
-					</div>
-				`,
-					)
-					.join("")}
-			</div>
-		</div>
-		`
-				: ""
-		}
+		${renderCurrentlyReading(currentlyReading)}
 
 		<div class="audiobook-grid secondary-stats">
 			<div class="audiobook-stat">
@@ -424,50 +490,32 @@ function renderAudiobookshelfStats(data) {
 
 		<div class="audiobook-grid daily-stats">
 			<div class="audiobook-stat">
-				<span class="stat-number"><span class="stat-value">${todayTime}</span></span>
+				<span class="stat-number"><span class="stat-value">${escapeHtml(todayTime)}</span></span>
 				<span class="stat-label">today</span>
 			</div>
 			<div class="audiobook-stat">
-				<span class="stat-number"><span class="stat-value">${bestDayTime}</span></span>
+				<span class="stat-number"><span class="stat-value">${escapeHtml(bestDayTime)}</span></span>
 				<span class="stat-label">best day</span>
 			</div>
 			<div class="audiobook-stat">
-				<span class="stat-number"><span class="stat-value">${avgDayTime}</span></span>
+				<span class="stat-number"><span class="stat-value">${escapeHtml(avgDayTime)}</span></span>
 				<span class="stat-label">avg per day</span>
 			</div>
 			<div class="audiobook-stat">
-				<span class="stat-number"><span class="stat-value">${Math.round(finalBooksFinished / Math.max(daysSinceCreated / 30, 1))}</span></span>
+				<span class="stat-number"><span class="stat-value">${booksPerMonth}</span></span>
 				<span class="stat-label">books/month</span>
 			</div>
 		</div>
 
-		${
-			data.user
-				? `
-		<div class="user-profile-section">
-			<h4>profile information</h4>
-			<div class="profile-stats">
-				<div class="profile-stat">
-					<span class="profile-label">member since:</span>
-					<span class="profile-value">${new Date(data.user.createdAt).toLocaleDateString()}</span>
-				</div>
-				<div class="profile-stat">
-					<span class="profile-label">last active:</span>
-					<span class="profile-value">${new Date(data.user.lastSeen).toLocaleDateString()}</span>
-				</div>
-			</div>
-		</div>
-		`
-				: ""
-		}
+		${renderUserProfile(data.user)}
 
 		${
-			allFinishedBooks.length > 0
+			finishedBooks.length > 0
 				? `
 		<div class="all-books">
 			<h4>finished books</h4>
 			<div class="book-search">
-				<input type="text" id="book-search-input" class="search-input" placeholder="search books..." oninput="filterBooks()">
+				<input type="text" id="book-search-input" class="search-input" placeholder="search books..." />
 			</div>
 			<div class="books-grid" id="all-books-grid"></div>
 			<div class="pagination" id="books-pagination"></div>
@@ -476,217 +524,147 @@ function renderAudiobookshelfStats(data) {
 				: ""
 		}
 
-		${
-			recentSessions.length
-				? `
-		<div class="recent-sessions">
-			<h4>recent listening sessions</h4>
-			<div class="sessions-list">
-				${recentSessions
-					.map(
-						(session) => `
-					<div class="session-item">
-						<div class="session-info">
-							<span class="session-title">${session.title}</span>
-							<span class="session-author">${session.author}</span>
-						</div>
-						<div class="session-meta">
-							<span class="session-duration">${session.duration}</span>
-							<span class="session-date">${session.date}</span>
-							<span class="session-device">${session.device}</span>
-						</div>
-					</div>
-				`,
-					)
-					.join("")}
-			</div>
-		</div>
-		`
-				: ""
-		}
+		${renderRecentSessions(data)}
 	`;
 
-	container.innerHTML = statsHTML;
+	container.replaceChildren();
+	container.insertAdjacentHTML("beforeend", html);
 
-	allFinishedBooksData = allFinishedBooks;
-	currentPage = 1;
-	renderBooksPage();
+	for (const item of container.querySelectorAll(".reading-item")) {
+		item.addEventListener("mouseenter", () => showBookDescription(item));
+		item.addEventListener("mouseleave", () => hideActiveBookDescription());
+	}
+
+	booksGrid.setData(finishedBooks);
 }
 
-function renderBookItem(book) {
-	return `
-		<div class="book-grid-item" data-title="${book.title.toLowerCase()}" data-author="${book.author.toLowerCase()}" data-series="${(book.series?.name || "").toLowerCase()}">
-			${
-				book.coverUrl
-					? `<div class="book-grid-cover">
-				<img src="${book.coverUrl}" alt="${book.title} cover" loading="lazy" onerror="this.style.display='none'">
-			</div>`
-					: ""
-			}
-			<div class="book-grid-info">
-				<span class="book-grid-title">${book.title}</span>
-				<span class="book-grid-author">by ${book.author}</span>
-				${book.series ? `<span class="book-grid-series">${book.series.name}</span>` : ""}
-				${book.finishedAt && book.finishedAt > 0 ? `<span class="book-grid-stats">finished ${new Date(book.finishedAt).toLocaleDateString()}</span>` : ""}
-			</div>
+function showError(container, message) {
+	const html = `
+		<div class="error-message">
+			<h3>unable to load audiobook stats</h3>
+			<p>${escapeHtml(message)}</p>
 		</div>
 	`;
+	container.replaceChildren();
+	container.insertAdjacentHTML("beforeend", html);
+	container.style.opacity = "1";
 }
 
-function renderBooksPage() {
-	const grid = document.getElementById("all-books-grid");
-	const pagination = document.getElementById("books-pagination");
-	if (!grid) return;
-
-	const totalPages = Math.ceil(allFinishedBooksData.length / BOOKS_PER_PAGE);
-	const start = (currentPage - 1) * BOOKS_PER_PAGE;
-	const pageBooks = allFinishedBooksData.slice(start, start + BOOKS_PER_PAGE);
-
-	grid.innerHTML = pageBooks.map(renderBookItem).join("");
-
-	if (pagination && totalPages > 1) {
-		pagination.style.display = "";
-		pagination.innerHTML = `
-			<button class="pagination-btn" onclick="goToBookPage(${currentPage - 1})" ${currentPage <= 1 ? "disabled" : ""}>prev</button>
-			<span class="pagination-info">${currentPage} / ${totalPages}</span>
-			<button class="pagination-btn" onclick="goToBookPage(${currentPage + 1})" ${currentPage >= totalPages ? "disabled" : ""}>next</button>
-		`;
-	} else if (pagination) {
-		pagination.style.display = "none";
-	}
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: Called from HTML onclick attribute
-function goToBookPage(page) {
-	const totalPages = Math.ceil(allFinishedBooksData.length / BOOKS_PER_PAGE);
-	if (page < 1 || page > totalPages) return;
-	currentPage = page;
-	renderBooksPage();
-
-	const grid = document.getElementById("all-books-grid");
-	if (grid) {
-		grid.scrollIntoView({ behavior: "smooth", block: "start" });
-	}
-}
-
-let bookDescriptionTimeout;
-let currentlyReadingBooks = [];
-let allFinishedBooksData = [];
-let currentPage = 1;
-const BOOKS_PER_PAGE = 24;
-
-// biome-ignore lint/correctness/noUnusedVariables: Called from HTML onmouseenter attribute
-function loadBookDescription(bookElement) {
-	const bookId = bookElement.dataset.bookId;
-	if (!bookId) return;
-
-	clearTimeout(bookDescriptionTimeout);
-
-	const descriptionDiv = bookElement.querySelector(".book-description");
-
-	addDimmingOverlay();
-
-	descriptionDiv.innerHTML = `
-		<div class="skeleton-line skeleton long"></div>
-		<div class="skeleton-line skeleton medium"></div>
-		<div class="skeleton-line skeleton short"></div>
-	`;
-	descriptionDiv.style.display = "block";
-	descriptionDiv.classList.add("show");
-
-	bookDescriptionTimeout = setTimeout(() => {
-		const bookData = currentlyReadingBooks.find((book) => book.id === bookId);
-
-		if (bookData?.description) {
-			descriptionDiv.innerHTML = bookData.description;
-		} else {
-			descriptionDiv.innerHTML = "<p>no description available</p>";
-		}
-	}, 300);
-}
-
-function clearBookTimeout() {
-	clearTimeout(bookDescriptionTimeout);
-	const descriptionDivs = document.querySelectorAll(".book-description");
-	descriptionDivs.forEach((div) => {
-		div.classList.remove("show");
-		setTimeout(() => {
-			if (!div.classList.contains("show")) {
-				div.style.display = "none";
-				div.innerHTML = "";
-			}
-		}, 300);
-	});
-	removeDimmingOverlay();
-}
-
-// biome-ignore lint/correctness/noUnusedVariables: Called from HTML oninput attribute
-function filterBooks() {
-	const searchInput = document.getElementById("book-search-input");
-	const booksGrid = document.getElementById("all-books-grid");
-	const pagination = document.getElementById("books-pagination");
-
-	if (!searchInput || !booksGrid) return;
-
-	const searchTerm = searchInput.value.toLowerCase();
-
-	if (!searchTerm) {
-		renderBooksPage();
-		return;
-	}
-
-	const matched = allFinishedBooksData.filter((book) => {
-		const title = book.title.toLowerCase();
-		const author = book.author.toLowerCase();
-		const series = (book.series?.name || "").toLowerCase();
-		return (
-			title.includes(searchTerm) ||
-			author.includes(searchTerm) ||
-			series.includes(searchTerm)
-		);
-	});
-
-	booksGrid.innerHTML = matched.map(renderBookItem).join("");
-
-	if (pagination) {
-		pagination.style.display = "none";
-	}
-}
-
-function addDimmingOverlay() {
+function ensureOverlay() {
 	let overlay = document.querySelector(".description-overlay");
 	if (!overlay) {
 		overlay = document.createElement("div");
 		overlay.className = "description-overlay";
 		document.body.appendChild(overlay);
 	}
-	setTimeout(() => {
-		overlay.classList.add("active");
-	}, 10);
+	requestAnimationFrame(() => overlay.classList.add("active"));
 }
 
-function removeDimmingOverlay() {
+function removeOverlay() {
 	const overlay = document.querySelector(".description-overlay");
-	if (overlay) {
-		overlay.classList.remove("active");
-		setTimeout(() => {
-			if (overlay.parentNode && !overlay.classList.contains("active")) {
-				overlay.parentNode.removeChild(overlay);
-			}
-		}, 300);
+	if (!overlay) return;
+	overlay.classList.remove("active");
+	setTimeout(() => {
+		if (!overlay.classList.contains("active")) overlay.remove();
+	}, UI.DESCRIPTION_DELAY);
+}
+
+function showBookDescription(readingItem) {
+	const bookId = readingItem.dataset.bookId;
+	if (!bookId) return;
+
+	clearTimeout(bookDescriptionTimeout);
+
+	const descriptionDiv = readingItem.querySelector(".book-description");
+	if (!descriptionDiv) return;
+
+	ensureOverlay();
+	descriptionDiv.replaceChildren();
+	descriptionDiv.insertAdjacentHTML(
+		"beforeend",
+		`
+		<div class="skeleton-line skeleton long"></div>
+		<div class="skeleton-line skeleton medium"></div>
+		<div class="skeleton-line skeleton short"></div>
+	`,
+	);
+	descriptionDiv.style.display = "block";
+	descriptionDiv.classList.add("show");
+
+	bookDescriptionTimeout = setTimeout(() => {
+		const bookData = currentlyReadingBooks.find((b) => b.id === bookId);
+		descriptionDiv.replaceChildren();
+		if (bookData?.description) {
+			descriptionDiv.insertAdjacentHTML("beforeend", bookData.description);
+		} else {
+			const p = document.createElement("p");
+			p.textContent = "no description available";
+			descriptionDiv.appendChild(p);
+		}
+	}, UI.DESCRIPTION_DELAY);
+}
+
+function hideActiveBookDescription() {
+	clearTimeout(bookDescriptionTimeout);
+	const active = document.querySelector(".book-description.show");
+	if (!active) {
+		removeOverlay();
+		return;
+	}
+	active.classList.remove("show");
+	setTimeout(() => {
+		if (!active.classList.contains("show")) {
+			active.style.display = "none";
+			active.replaceChildren();
+		}
+	}, UI.DESCRIPTION_DELAY);
+	removeOverlay();
+}
+
+function wireDelegation(container) {
+	delegate(container, "input", "#book-search-input", (e) => {
+		booksGrid.filter(e.target.value);
+	});
+	booksGrid.attach(container);
+
+	document.addEventListener("click", (e) => {
+		const active = document.querySelector(".book-description.show");
+		if (!active) return;
+		if (
+			!e.target.closest(".reading-item") &&
+			!e.target.closest(".book-description")
+		) {
+			hideActiveBookDescription();
+		}
+	});
+}
+
+async function init() {
+	const container = document.getElementById("audiobookshelf-stats");
+	if (!container) return;
+
+	wireDelegation(container);
+
+	try {
+		const response = await fetch("/api/audiobookshelf/stats");
+		if (!response.ok) throw new Error("Failed to fetch stats");
+		const data = await response.json();
+		if (data.error) {
+			showError(container, data.error);
+			return;
+		}
+		container.style.display = "block";
+		renderStats(data);
+		requestAnimationFrame(() => {
+			container.style.opacity = "1";
+		});
+	} catch {
+		showError(container, "Failed to load audiobook stats");
 	}
 }
 
-document.addEventListener("click", (e) => {
-	const descriptionDiv = document.querySelector(".book-description.show");
-	if (descriptionDiv) {
-		const bookItem = e.target.closest(".reading-item");
-		const clickedDescription = e.target.closest(".book-description");
-
-		if (!bookItem && !clickedDescription) {
-			clearBookTimeout();
-		}
-	}
-});
-
-document.addEventListener("DOMContentLoaded", updateAudiobookshelfStats);
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", init, { once: true });
+} else {
+	init();
+}

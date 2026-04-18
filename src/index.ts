@@ -7,7 +7,6 @@ import { startCataasCache } from "#services/cataas";
 import { startLastFmCache } from "#services/lastfm";
 import { startImageCaches } from "#services/profile-picture";
 import { startProjectLinksCache } from "#services/project-links";
-import { startSrsViewerCache } from "#services/srs-viewer";
 import { startTimezoneCache } from "#services/timezonedb";
 
 async function main(): Promise<void> {
@@ -20,7 +19,6 @@ async function main(): Promise<void> {
 	startAniListCache();
 	startTimezoneCache();
 	startLastFmCache();
-	startSrsViewerCache();
 	startCataasCache();
 
 	serverHandler.initialize();
