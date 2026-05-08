@@ -8,33 +8,43 @@ const FALLBACK_FINISHED_HOURS = 20;
 const FALLBACK_PROGRESS_PERCENT = 95;
 const ESTIMATED_BOOK_DURATION_SECONDS = 12 * 3600;
 
-let currentlyReadingBooks = [];
+let currentlyReadingById = new Map();
 let bookDescriptionFillTimeout = null;
 let bookDescriptionClearTimeout = null;
+let booksGrid = null;
+let cachedOverlay = null;
+let activeDescription = null;
 
-const booksGrid = createPaginatedGrid({
-	gridId: "all-books-grid",
-	paginationId: "books-pagination",
-	pageSize: BOOKS_PER_PAGE,
-	renderGrid: (grid, items) => {
-		grid.replaceChildren();
-		grid.insertAdjacentHTML(
-			"beforeend",
-			items.map(renderBookGridItem).join(""),
-		);
-	},
-	matchItem: (book, term) => {
-		return (
-			book.title.toLowerCase().includes(term) ||
-			book.author.toLowerCase().includes(term) ||
-			(book.series?.name || "").toLowerCase().includes(term)
-		);
-	},
-});
+function getBooksGrid() {
+	if (booksGrid) return booksGrid;
+	booksGrid = createPaginatedGrid({
+		gridId: "all-books-grid",
+		paginationId: "books-pagination",
+		pageSize: BOOKS_PER_PAGE,
+		renderGrid: (grid, items) => {
+			grid.replaceChildren();
+			grid.insertAdjacentHTML(
+				"beforeend",
+				items.map(renderBookGridItem).join(""),
+			);
+		},
+		searchableText: (book) =>
+			`${book.title}\n${book.author}\n${book.series?.name || ""}`,
+	});
+	return booksGrid;
+}
 
 function formatSeriesLabel(series) {
 	if (!series?.name) return "";
 	return series.sequence ? `${series.name} #${series.sequence}` : series.name;
+}
+
+function primaryAuthor(book) {
+	return book?.mediaMetadata?.authors?.[0]?.name || "Unknown Author";
+}
+
+function primarySeries(book) {
+	return book?.mediaMetadata?.series?.[0] || null;
 }
 
 function renderBookGridItem(book) {
@@ -139,11 +149,11 @@ function buildFinishedBooks(data, mediaProgress) {
 
 		list.push({
 			title: book.mediaMetadata?.title || "Unknown Title",
-			author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
+			author: primaryAuthor(book),
 			coverUrl: book.coverUrl,
 			finishedAt: progress.finishedAt,
 			id: progress.libraryItemId,
-			series: book.mediaMetadata?.series?.[0] || null,
+			series: primarySeries(book),
 		});
 	}
 
@@ -189,8 +199,8 @@ function buildCurrentlyReadingFromProgress(data, mediaProgress) {
 
 		out.push({
 			title,
-			author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
-			series: formatSeriesLabel(book.mediaMetadata?.series?.[0]) || null,
+			author: primaryAuthor(book),
+			series: formatSeriesLabel(primarySeries(book)) || null,
 			progress: Math.min(Math.max(progressPercent, 0), 100),
 			timeRemaining,
 			totalHours: Math.round(p.currentTime / 3600),
@@ -203,55 +213,67 @@ function buildCurrentlyReadingFromProgress(data, mediaProgress) {
 }
 
 function buildCurrentlyReadingFromItems(books) {
+	const TOP_K = 5;
+	const top = [];
 	const seen = new Set();
-	return books
-		.filter((book) => {
-			const duration = book.mediaMetadata?.duration;
-			if (duration && duration > 0) {
-				const progress = (book.timeListening / duration) * 100;
-				return progress > 0 && progress < 90;
-			}
-			const hours = book.timeListening / 3600;
-			return hours > 0 && hours < 8;
-		})
-		.sort((a, b) => b.timeListening - a.timeListening)
-		.map((book) => {
-			if (seen.has(book.id)) return null;
-			seen.add(book.id);
 
-			const title = book.mediaMetadata?.title || "Unknown Title";
-			const duration = book.mediaMetadata?.duration;
-			let progress;
-			let remainingSeconds;
-			if (duration && duration > 0) {
-				progress = Math.round((book.timeListening / duration) * 100);
-				remainingSeconds = Math.max(0, duration - book.timeListening);
-			} else {
-				progress = Math.round(
-					(book.timeListening / ESTIMATED_BOOK_DURATION_SECONDS) * 100,
-				);
-				remainingSeconds = Math.max(
-					0,
-					ESTIMATED_BOOK_DURATION_SECONDS - book.timeListening,
-				);
-			}
-			const timeRemaining =
-				remainingSeconds > 0 ? formatDuration(remainingSeconds) : null;
+	for (const book of books) {
+		if (seen.has(book.id)) continue;
+		const duration = book.mediaMetadata?.duration;
+		const inRange =
+			duration && duration > 0
+				? (() => {
+						const pct = (book.timeListening / duration) * 100;
+						return pct > 0 && pct < 90;
+					})()
+				: book.timeListening > 0 && book.timeListening / 3600 < 8;
+		if (!inRange) continue;
+		seen.add(book.id);
 
-			return {
-				title,
-				author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
-				series: formatSeriesLabel(book.mediaMetadata?.series?.[0]) || null,
-				progress: Math.min(Math.max(progress, 0), 100),
-				timeRemaining,
-				totalHours: Math.round(book.timeListening / 3600),
-				coverUrl: book.coverUrl,
-				description: book.mediaMetadata?.description || null,
-				id: book.id,
-			};
-		})
-		.filter(Boolean)
-		.slice(0, 5);
+		if (top.length < TOP_K) {
+			top.push(book);
+			top.sort((a, b) => b.timeListening - a.timeListening);
+			continue;
+		}
+		const minIdx = top.length - 1;
+		if (book.timeListening > top[minIdx].timeListening) {
+			top[minIdx] = book;
+			top.sort((a, b) => b.timeListening - a.timeListening);
+		}
+	}
+
+	return top.map((book) => {
+		const title = book.mediaMetadata?.title || "Unknown Title";
+		const duration = book.mediaMetadata?.duration;
+		let progress;
+		let remainingSeconds;
+		if (duration && duration > 0) {
+			progress = Math.round((book.timeListening / duration) * 100);
+			remainingSeconds = Math.max(0, duration - book.timeListening);
+		} else {
+			progress = Math.round(
+				(book.timeListening / ESTIMATED_BOOK_DURATION_SECONDS) * 100,
+			);
+			remainingSeconds = Math.max(
+				0,
+				ESTIMATED_BOOK_DURATION_SECONDS - book.timeListening,
+			);
+		}
+		const timeRemaining =
+			remainingSeconds > 0 ? formatDuration(remainingSeconds) : null;
+
+		return {
+			title,
+			author: primaryAuthor(book),
+			series: formatSeriesLabel(primarySeries(book)) || null,
+			progress: Math.min(Math.max(progress, 0), 100),
+			timeRemaining,
+			totalHours: Math.round(book.timeListening / 3600),
+			coverUrl: book.coverUrl,
+			description: book.mediaMetadata?.description || null,
+			id: book.id,
+		};
+	});
 }
 
 function renderCurrentlyReading(list) {
@@ -429,8 +451,10 @@ function renderStats(data) {
 	const { uniqueAuthors, uniqueSeries, uniqueGenres, publishers } =
 		collectTaxonomy(books);
 
-	const dailyTimes = Object.values(data.days || {});
-	const bestDaySeconds = dailyTimes.length > 0 ? Math.max(...dailyTimes) : 0;
+	let bestDaySeconds = 0;
+	for (const seconds of Object.values(data.days || {})) {
+		if (seconds > bestDaySeconds) bestDaySeconds = seconds;
+	}
 	const bestDayTime = formatDuration(bestDaySeconds);
 	const todayTime = formatDuration(data.today || 0);
 
@@ -455,7 +479,9 @@ function renderStats(data) {
 		fromProgress.length > 0
 			? fromProgress
 			: buildCurrentlyReadingFromItems(books);
-	currentlyReadingBooks = currentlyReading;
+	currentlyReadingById = new Map(
+		currentlyReading.map((book) => [book.id, book]),
+	);
 
 	const html = `
 		<div class="audiobook-grid main-stats">
@@ -553,7 +579,7 @@ function renderStats(data) {
 		item.addEventListener("mouseleave", () => hideActiveBookDescription());
 	}
 
-	booksGrid.setData(finishedBooks);
+	getBooksGrid().setData(finishedBooks);
 }
 
 function showError(container, message) {
@@ -569,21 +595,24 @@ function showError(container, message) {
 }
 
 function ensureOverlay() {
-	let overlay = document.querySelector(".description-overlay");
-	if (!overlay) {
-		overlay = document.createElement("div");
-		overlay.className = "description-overlay";
-		document.body.appendChild(overlay);
+	if (!cachedOverlay?.isConnected) {
+		cachedOverlay = document.createElement("div");
+		cachedOverlay.className = "description-overlay";
+		document.body.appendChild(cachedOverlay);
 	}
+	const overlay = cachedOverlay;
 	requestAnimationFrame(() => overlay.classList.add("active"));
 }
 
 function removeOverlay() {
-	const overlay = document.querySelector(".description-overlay");
-	if (!overlay) return;
+	const overlay = cachedOverlay;
+	if (!overlay?.isConnected) return;
 	overlay.classList.remove("active");
 	setTimeout(() => {
-		if (!overlay.classList.contains("active")) overlay.remove();
+		if (!overlay.classList.contains("active")) {
+			overlay.remove();
+			if (cachedOverlay === overlay) cachedOverlay = null;
+		}
 	}, UI.DESCRIPTION_DELAY);
 }
 
@@ -594,12 +623,10 @@ function showBookDescription(readingItem) {
 	const descriptionDiv = readingItem.querySelector(".book-description");
 	if (!descriptionDiv) return;
 
-	for (const other of document.querySelectorAll(".book-description.show")) {
-		if (other !== descriptionDiv) {
-			other.classList.remove("show");
-			other.style.display = "none";
-			other.replaceChildren();
-		}
+	if (activeDescription && activeDescription !== descriptionDiv) {
+		activeDescription.classList.remove("show");
+		activeDescription.style.display = "none";
+		activeDescription.replaceChildren();
 	}
 
 	clearTimeout(bookDescriptionFillTimeout);
@@ -617,9 +644,10 @@ function showBookDescription(readingItem) {
 	);
 	descriptionDiv.style.display = "block";
 	descriptionDiv.classList.add("show");
+	activeDescription = descriptionDiv;
 
 	bookDescriptionFillTimeout = setTimeout(() => {
-		const bookData = currentlyReadingBooks.find((b) => b.id === bookId);
+		const bookData = currentlyReadingById.get(bookId);
 		descriptionDiv.replaceChildren();
 		if (bookData?.description) {
 			descriptionDiv.insertAdjacentHTML("beforeend", bookData.description);
@@ -632,12 +660,14 @@ function showBookDescription(readingItem) {
 }
 
 function hideActiveBookDescription() {
-	const active = document.querySelector(".book-description.show");
-	if (!active) {
+	const active = activeDescription;
+	if (!active?.classList.contains("show")) {
+		activeDescription = null;
 		removeOverlay();
 		return;
 	}
 	active.classList.remove("show");
+	activeDescription = null;
 	clearTimeout(bookDescriptionClearTimeout);
 	bookDescriptionClearTimeout = setTimeout(() => {
 		if (!active.classList.contains("show")) {
@@ -649,14 +679,14 @@ function hideActiveBookDescription() {
 }
 
 function wireDelegation(container) {
+	const grid = getBooksGrid();
 	delegate(container, "input", "#book-search-input", (e) => {
-		booksGrid.filter(e.target.value);
+		grid.filter(e.target.value);
 	});
-	booksGrid.attach(container);
+	grid.attach(container);
 
 	document.addEventListener("click", (e) => {
-		const active = document.querySelector(".book-description.show");
-		if (!active) return;
+		if (!activeDescription) return;
 		if (
 			!e.target.closest(".reading-item") &&
 			!e.target.closest(".book-description")

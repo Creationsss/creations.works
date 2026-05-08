@@ -6,9 +6,12 @@ const ESCAPE_MAP = {
 	"'": "&#39;",
 };
 
+const ESCAPE_RE = /[&<>"']/g;
+const escapeReplacer = (ch) => ESCAPE_MAP[ch];
+
 export function escapeHtml(value) {
 	if (value == null) return "";
-	return String(value).replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
+	return String(value).replace(ESCAPE_RE, escapeReplacer);
 }
 
 export function delegate(root, event, selector, handler) {
@@ -50,17 +53,20 @@ function isValidCodePoint(code) {
 	return Number.isFinite(code) && code >= 0 && code <= 0x10ffff;
 }
 
+const ENTITY_RE = /&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g;
+const entityReplacer = (match, entity) => {
+	if (entity.startsWith("#x") || entity.startsWith("#X")) {
+		const code = Number.parseInt(entity.slice(2), 16);
+		return isValidCodePoint(code) ? String.fromCodePoint(code) : match;
+	}
+	if (entity.startsWith("#")) {
+		const code = Number.parseInt(entity.slice(1), 10);
+		return isValidCodePoint(code) ? String.fromCodePoint(code) : match;
+	}
+	return NAMED_ENTITIES[entity] ?? match;
+};
+
 export function decodeEntities(text) {
 	if (!text) return "";
-	return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
-		if (entity.startsWith("#x") || entity.startsWith("#X")) {
-			const code = Number.parseInt(entity.slice(2), 16);
-			return isValidCodePoint(code) ? String.fromCodePoint(code) : match;
-		}
-		if (entity.startsWith("#")) {
-			const code = Number.parseInt(entity.slice(1), 10);
-			return isValidCodePoint(code) ? String.fromCodePoint(code) : match;
-		}
-		return NAMED_ENTITIES[entity] ?? match;
-	});
+	return text.replace(ENTITY_RE, entityReplacer);
 }

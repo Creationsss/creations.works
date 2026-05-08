@@ -1,66 +1,66 @@
 import { createPoller } from "./utils/poller.js";
 import { formatTimeRemaining } from "./utils/time.js";
 
-function clearAudiobookListening(container) {
-	const cover = container.querySelector(".audiobook-listening-cover");
-	const title = container.querySelector(".audiobook-listening-title");
-	const author = container.querySelector(".audiobook-listening-author");
-	const progressBar = container.querySelector(
-		".audiobook-listening-progress-fill",
-	);
-	const timeInfo = container.querySelector(".audiobook-listening-time");
+let cachedRefs = null;
 
-	if (cover) {
-		cover.src = "/public/assets/default-book.svg";
-		cover.alt = "";
+function getRefs() {
+	if (cachedRefs?.container.isConnected) return cachedRefs;
+	const container = document.getElementById("audiobook-listening");
+	if (!container) return null;
+	cachedRefs = {
+		container,
+		cover: container.querySelector(".audiobook-listening-cover"),
+		title: container.querySelector(".audiobook-listening-title"),
+		author: container.querySelector(".audiobook-listening-author"),
+		progressBar: container.querySelector(".audiobook-listening-progress-fill"),
+		timeInfo: container.querySelector(".audiobook-listening-time"),
+	};
+	return cachedRefs;
+}
+
+function clearAudiobookListening(refs) {
+	if (refs.cover) {
+		refs.cover.src = "/public/assets/default-book.svg";
+		refs.cover.alt = "";
 	}
-	if (title) title.textContent = "";
-	if (author) author.textContent = "";
-	if (progressBar) progressBar.style.width = "0%";
-	if (timeInfo) timeInfo.textContent = "";
+	if (refs.title) refs.title.textContent = "";
+	if (refs.author) refs.author.textContent = "";
+	if (refs.progressBar) refs.progressBar.style.width = "0%";
+	if (refs.timeInfo) refs.timeInfo.textContent = "";
 }
 
 function updateAudiobookListening(data) {
-	const container = document.getElementById("audiobook-listening");
-	if (!container) return;
+	const refs = getRefs();
+	if (!refs) return;
 
 	if (!data?.isListening || !data.book) {
-		container.classList.remove("visible");
-		clearAudiobookListening(container);
+		refs.container.classList.remove("visible");
+		clearAudiobookListening(refs);
 		return;
 	}
 
 	const book = data.book;
-	const cover = container.querySelector(".audiobook-listening-cover");
-	const title = container.querySelector(".audiobook-listening-title");
-	const author = container.querySelector(".audiobook-listening-author");
-	const progressBar = container.querySelector(
-		".audiobook-listening-progress-fill",
-	);
-	const timeInfo = container.querySelector(".audiobook-listening-time");
+	const ratio = Number.isFinite(book.progress) ? book.progress : 0;
+	const clampedPercent = Math.max(0, Math.min(ratio * 100, 100));
 
-	if (title) title.textContent = book.title;
-	if (author) author.textContent = book.author;
+	if (refs.title) refs.title.textContent = book.title;
+	if (refs.author) refs.author.textContent = book.author;
 
-	if (cover) {
-		cover.src = book.cover || "/public/assets/default-book.svg";
-		cover.alt = book.title;
+	if (refs.cover) {
+		refs.cover.src = book.cover || "/public/assets/default-book.svg";
+		refs.cover.alt = book.title;
 	}
 
-	if (progressBar) {
-		const ratio = Number.isFinite(book.progress) ? book.progress : 0;
-		const progressPercent = Math.max(0, Math.min(ratio * 100, 100));
-		progressBar.style.width = `${progressPercent}%`;
+	if (refs.progressBar) {
+		refs.progressBar.style.width = `${clampedPercent}%`;
 	}
 
-	if (timeInfo) {
-		const ratio = Number.isFinite(book.progress) ? book.progress : 0;
-		const progressPercent = Math.max(0, Math.min(Math.round(ratio * 100), 100));
+	if (refs.timeInfo) {
 		const remaining = formatTimeRemaining(book.currentTime, book.duration);
-		timeInfo.textContent = `${progressPercent}% · ${remaining}`;
+		refs.timeInfo.textContent = `${Math.round(clampedPercent)}% · ${remaining}`;
 	}
 
-	container.classList.add("visible");
+	refs.container.classList.add("visible");
 }
 
 createPoller({

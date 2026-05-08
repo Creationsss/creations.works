@@ -4,32 +4,57 @@ export function createPaginatedGrid({
 	pageSize,
 	renderGrid,
 	matchItem,
+	searchableText,
+	filterDebounceMs = 150,
 }) {
 	let data = [];
+	let searchIndex = null;
 	let filtered = null;
 	let currentPage = 1;
+	let attached = false;
+	let filterTimer = null;
+	let pendingTerm = "";
+
+	let gridEl = null;
+	let paginationEl = null;
+
+	function getGrid() {
+		if (gridEl?.isConnected) return gridEl;
+		gridEl = document.getElementById(gridId);
+		return gridEl;
+	}
+
+	function getPagination() {
+		if (paginationEl?.isConnected) return paginationEl;
+		paginationEl = document.getElementById(paginationId);
+		return paginationEl;
+	}
 
 	function activeData() {
 		return filtered ?? data;
 	}
 
+	function totalPages() {
+		return Math.max(1, Math.ceil(activeData().length / pageSize));
+	}
+
 	function renderPage() {
-		const grid = document.getElementById(gridId);
-		const pagination = document.getElementById(paginationId);
+		const grid = getGrid();
 		if (!grid) return;
 
 		const list = activeData();
-		const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
-		if (currentPage > totalPages) currentPage = totalPages;
+		const pages = totalPages();
+		if (currentPage > pages) currentPage = pages;
 
 		const start = (currentPage - 1) * pageSize;
 		const pageItems = list.slice(start, start + pageSize);
 
 		renderGrid(grid, pageItems);
 
+		const pagination = getPagination();
 		if (!pagination) return;
 
-		if (filtered !== null || totalPages <= 1) {
+		if (filtered !== null || pages <= 1) {
 			pagination.style.display = "none";
 			pagination.replaceChildren();
 			return;
@@ -38,8 +63,8 @@ export function createPaginatedGrid({
 		pagination.style.display = "";
 		pagination.replaceChildren(
 			makeBtn("prev", currentPage - 1, currentPage <= 1),
-			makeInfo(currentPage, totalPages),
-			makeBtn("next", currentPage + 1, currentPage >= totalPages),
+			makeInfo(currentPage, pages),
+			makeBtn("next", currentPage + 1, currentPage >= pages),
 		);
 	}
 
@@ -61,20 +86,22 @@ export function createPaginatedGrid({
 	}
 
 	function goToPage(page) {
-		const list = activeData();
-		const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
-		if (page < 1 || page > totalPages) return;
+		if (page < 1 || page > totalPages()) return;
 		currentPage = page;
 		renderPage();
 
-		const grid = document.getElementById(gridId);
+		const grid = getGrid();
 		if (grid) grid.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
-	function filter(term) {
-		const trimmed = term.trim().toLowerCase();
+	function applyFilter(trimmed) {
 		if (!trimmed) {
 			filtered = null;
+		} else if (searchIndex) {
+			filtered = [];
+			for (let i = 0; i < searchIndex.length; i++) {
+				if (searchIndex[i].includes(trimmed)) filtered.push(data[i]);
+			}
 		} else {
 			filtered = data.filter((item) => matchItem(item, trimmed));
 		}
@@ -82,7 +109,19 @@ export function createPaginatedGrid({
 		renderPage();
 	}
 
+	function filter(term) {
+		pendingTerm = term.trim().toLowerCase();
+		if (filterDebounceMs <= 0) {
+			applyFilter(pendingTerm);
+			return;
+		}
+		clearTimeout(filterTimer);
+		filterTimer = setTimeout(() => applyFilter(pendingTerm), filterDebounceMs);
+	}
+
 	function attach(parent = document) {
+		if (attached) return;
+		attached = true;
 		parent.addEventListener("click", (e) => {
 			const btn = e.target.closest(`#${paginationId} .pagination-btn`);
 			if (btn && !btn.disabled) {
@@ -95,6 +134,9 @@ export function createPaginatedGrid({
 	return {
 		setData(nextData) {
 			data = nextData;
+			searchIndex = searchableText
+				? data.map((item) => searchableText(item).toLowerCase())
+				: null;
 			filtered = null;
 			currentPage = 1;
 			renderPage();
