@@ -316,7 +316,7 @@ function renderCurrentlyReading(list) {
 						}
 					</div>
 				</div>
-				<div class="book-description" style="display: none;"></div>
+				<div class="book-description"></div>
 			</div>
 		`;
 		})
@@ -625,7 +625,6 @@ function showBookDescription(readingItem) {
 
 	if (activeDescription && activeDescription !== descriptionDiv) {
 		activeDescription.classList.remove("show");
-		activeDescription.style.display = "none";
 		activeDescription.replaceChildren();
 	}
 
@@ -642,7 +641,6 @@ function showBookDescription(readingItem) {
 		<div class="skeleton-line skeleton short"></div>
 	`,
 	);
-	descriptionDiv.style.display = "block";
 	descriptionDiv.classList.add("show");
 	activeDescription = descriptionDiv;
 
@@ -671,7 +669,6 @@ function hideActiveBookDescription() {
 	clearTimeout(bookDescriptionClearTimeout);
 	bookDescriptionClearTimeout = setTimeout(() => {
 		if (!active.classList.contains("show")) {
-			active.style.display = "none";
 			active.replaceChildren();
 		}
 	}, UI.DESCRIPTION_DELAY);
