@@ -62,7 +62,7 @@ export function createPaginatedGrid({
 
 	function goToPage(page) {
 		const list = activeData();
-		const totalPages = Math.ceil(list.length / pageSize);
+		const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
 		if (page < 1 || page > totalPages) return;
 		currentPage = page;
 		renderPage();

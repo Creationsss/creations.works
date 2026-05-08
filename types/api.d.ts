@@ -28,6 +28,7 @@ interface AudiobookshelfStats {
 	libraries: LibraryDetail[];
 	items: Record<string, unknown>;
 	today: number;
+	days: Record<string, number>;
 	recentSessions: unknown[];
 	mediaProgress: unknown[];
 	user: AudiobookshelfUser;

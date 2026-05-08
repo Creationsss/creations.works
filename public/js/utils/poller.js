@@ -1,7 +1,10 @@
 export function createPoller({ url, update, interval = 30000, fetchOptions }) {
 	let intervalId = null;
+	let inFlight = false;
 
 	async function tick() {
+		if (inFlight) return;
+		inFlight = true;
 		try {
 			const response = await fetch(url, fetchOptions);
 			if (!response.ok) return;
@@ -10,6 +13,8 @@ export function createPoller({ url, update, interval = 30000, fetchOptions }) {
 			update(data);
 		} catch {
 			/* swallow — transient network errors */
+		} finally {
+			inFlight = false;
 		}
 	}
 

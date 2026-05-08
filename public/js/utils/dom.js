@@ -46,16 +46,20 @@ const NAMED_ENTITIES = {
 	rdquo: "\u201d",
 };
 
+function isValidCodePoint(code) {
+	return Number.isFinite(code) && code >= 0 && code <= 0x10ffff;
+}
+
 export function decodeEntities(text) {
 	if (!text) return "";
 	return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
 		if (entity.startsWith("#x") || entity.startsWith("#X")) {
 			const code = Number.parseInt(entity.slice(2), 16);
-			return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+			return isValidCodePoint(code) ? String.fromCodePoint(code) : match;
 		}
 		if (entity.startsWith("#")) {
 			const code = Number.parseInt(entity.slice(1), 10);
-			return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+			return isValidCodePoint(code) ? String.fromCodePoint(code) : match;
 		}
 		return NAMED_ENTITIES[entity] ?? match;
 	});

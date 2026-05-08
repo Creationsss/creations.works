@@ -1,4 +1,5 @@
 export function formatDuration(seconds) {
+	if (!Number.isFinite(seconds) || seconds <= 0) return "0m";
 	const hours = Math.floor(seconds / 3600);
 	const minutes = Math.floor((seconds % 3600) / 60);
 	if (hours === 0) return `${minutes}m`;
@@ -6,8 +7,15 @@ export function formatDuration(seconds) {
 }
 
 export function formatTimeRemaining(currentTime, duration) {
+	if (
+		!Number.isFinite(currentTime) ||
+		!Number.isFinite(duration) ||
+		duration <= 0
+	) {
+		return "-- left";
+	}
 	const remaining = duration - currentTime;
-	if (remaining <= 0) return "0:00 left";
+	if (remaining <= 0) return "0m left";
 
 	const hours = Math.floor(remaining / 3600);
 	const minutes = Math.floor((remaining % 3600) / 60);
@@ -17,6 +25,7 @@ export function formatTimeRemaining(currentTime, duration) {
 }
 
 export function formatTimeUntil(seconds) {
+	if (!Number.isFinite(seconds) || seconds <= 0) return "0m";
 	const days = Math.floor(seconds / 86400);
 	const hours = Math.floor((seconds % 86400) / 3600);
 	if (days > 0) return `${days}d ${hours}h`;
@@ -26,6 +35,7 @@ export function formatTimeUntil(seconds) {
 }
 
 export function formatRelativeTime(timestampSeconds) {
+	if (!Number.isFinite(timestampSeconds)) return "unknown";
 	const diff = Date.now() - timestampSeconds * 1000;
 	const minutes = Math.floor(diff / 60000);
 	const hours = Math.floor(diff / 3600000);

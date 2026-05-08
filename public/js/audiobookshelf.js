@@ -9,7 +9,8 @@ const FALLBACK_PROGRESS_PERCENT = 95;
 const ESTIMATED_BOOK_DURATION_SECONDS = 12 * 3600;
 
 let currentlyReadingBooks = [];
-let bookDescriptionTimeout = null;
+let bookDescriptionFillTimeout = null;
+let bookDescriptionClearTimeout = null;
 
 const booksGrid = createPaginatedGrid({
 	gridId: "all-books-grid",
@@ -31,10 +32,17 @@ const booksGrid = createPaginatedGrid({
 	},
 });
 
+function formatSeriesLabel(series) {
+	if (!series?.name) return "";
+	return series.sequence ? `${series.name} #${series.sequence}` : series.name;
+}
+
 function renderBookGridItem(book) {
 	const title = escapeHtml(book.title);
 	const author = escapeHtml(book.author);
-	const seriesName = book.series?.name ? escapeHtml(book.series.name) : "";
+	const seriesName = book.series
+		? escapeHtml(formatSeriesLabel(book.series))
+		: "";
 	const finishedDate =
 		book.finishedAt && book.finishedAt > 0
 			? escapeHtml(new Date(book.finishedAt).toLocaleDateString())
@@ -59,13 +67,15 @@ function renderBookGridItem(book) {
 	`;
 }
 
-function countProgress(mediaProgress, books) {
+function countProgress(mediaProgress, books, items) {
 	if (mediaProgress.length > 0) {
 		let finished = 0;
 		let inProgress = 0;
 		for (const progress of mediaProgress) {
+			if (items && !items[progress.libraryItemId]) continue;
 			if (progress.isFinished) finished++;
-			else if (progress.progress > 0) inProgress++;
+			else if (progress.progress > 0 && !progress.hideFromContinueListening)
+				inProgress++;
 		}
 		return { finished, inProgress };
 	}
@@ -92,7 +102,6 @@ function collectTaxonomy(books) {
 	const uniqueSeries = new Set();
 	const uniqueGenres = new Set();
 	const publishers = new Set();
-	const seriesStats = {};
 
 	for (const book of books) {
 		if (book.mediaMetadata?.authors) {
@@ -103,19 +112,6 @@ function collectTaxonomy(books) {
 		if (book.mediaMetadata?.series) {
 			for (const series of book.mediaMetadata.series) {
 				uniqueSeries.add(series.name);
-				let stat = seriesStats[series.name];
-				if (!stat) {
-					stat = {
-						time: 0,
-						books: 0,
-						id: series.id,
-						coverUrls: new Set(),
-					};
-					seriesStats[series.name] = stat;
-				}
-				stat.time += book.timeListening;
-				stat.books += 1;
-				if (book.coverUrl) stat.coverUrls.add(book.coverUrl);
 			}
 		}
 		if (book.mediaMetadata?.genres) {
@@ -128,15 +124,18 @@ function collectTaxonomy(books) {
 		}
 	}
 
-	return { uniqueAuthors, uniqueSeries, uniqueGenres, publishers, seriesStats };
+	return { uniqueAuthors, uniqueSeries, uniqueGenres, publishers };
 }
 
 function buildFinishedBooks(data, mediaProgress) {
 	const list = [];
+	const seen = new Set();
 	for (const progress of mediaProgress) {
 		if (!progress.isFinished) continue;
+		if (seen.has(progress.libraryItemId)) continue;
 		const book = data.items[progress.libraryItemId];
 		if (!book) continue;
+		seen.add(progress.libraryItemId);
 
 		list.push({
 			title: book.mediaMetadata?.title || "Unknown Title",
@@ -175,20 +174,23 @@ function buildCurrentlyReadingFromProgress(data, mediaProgress) {
 	const seen = new Set();
 	const out = [];
 	for (const p of inProgress) {
+		if (seen.has(p.libraryItemId)) continue;
+		seen.add(p.libraryItemId);
+
 		const book = data.items[p.libraryItemId];
 		const title = book.mediaMetadata?.title || "Unknown Title";
-		if (seen.has(title)) continue;
-		seen.add(title);
 
 		const progressPercent = Math.round(p.progress * 100);
 		const remainingSeconds = Math.max(0, p.duration - p.currentTime);
 		const timeRemaining =
-			p.duration > 0 ? formatDuration(remainingSeconds) : "0h";
+			p.duration > 0 && remainingSeconds > 0
+				? formatDuration(remainingSeconds)
+				: null;
 
 		out.push({
 			title,
 			author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
-			series: book.mediaMetadata?.series?.[0]?.name || null,
+			series: formatSeriesLabel(book.mediaMetadata?.series?.[0]) || null,
 			progress: Math.min(Math.max(progressPercent, 0), 100),
 			timeRemaining,
 			totalHours: Math.round(p.currentTime / 3600),
@@ -214,31 +216,32 @@ function buildCurrentlyReadingFromItems(books) {
 		})
 		.sort((a, b) => b.timeListening - a.timeListening)
 		.map((book) => {
-			const title = book.mediaMetadata?.title || "Unknown Title";
-			if (seen.has(title)) return null;
-			seen.add(title);
+			if (seen.has(book.id)) return null;
+			seen.add(book.id);
 
+			const title = book.mediaMetadata?.title || "Unknown Title";
 			const duration = book.mediaMetadata?.duration;
 			let progress;
-			let timeRemaining;
+			let remainingSeconds;
 			if (duration && duration > 0) {
 				progress = Math.round((book.timeListening / duration) * 100);
-				timeRemaining = formatDuration(
-					Math.max(0, duration - book.timeListening),
-				);
+				remainingSeconds = Math.max(0, duration - book.timeListening);
 			} else {
 				progress = Math.round(
 					(book.timeListening / ESTIMATED_BOOK_DURATION_SECONDS) * 100,
 				);
-				timeRemaining = formatDuration(
-					Math.max(0, ESTIMATED_BOOK_DURATION_SECONDS - book.timeListening),
+				remainingSeconds = Math.max(
+					0,
+					ESTIMATED_BOOK_DURATION_SECONDS - book.timeListening,
 				);
 			}
+			const timeRemaining =
+				remainingSeconds > 0 ? formatDuration(remainingSeconds) : null;
 
 			return {
 				title,
 				author: book.mediaMetadata?.authors?.[0]?.name || "Unknown Author",
-				series: book.mediaMetadata?.series?.[0]?.name || null,
+				series: formatSeriesLabel(book.mediaMetadata?.series?.[0]) || null,
 				progress: Math.min(Math.max(progress, 0), 100),
 				timeRemaining,
 				totalHours: Math.round(book.timeListening / 3600),
@@ -258,7 +261,9 @@ function renderCurrentlyReading(list) {
 			const title = escapeHtml(book.title);
 			const author = escapeHtml(book.author);
 			const series = book.series ? escapeHtml(book.series) : "";
-			const timeRemaining = escapeHtml(book.timeRemaining);
+			const timeRemaining = book.timeRemaining
+				? escapeHtml(book.timeRemaining)
+				: "";
 			return `
 			<div class="reading-item" data-book-id="${escapeHtml(book.id || "")}">
 				${
@@ -283,7 +288,7 @@ function renderCurrentlyReading(list) {
 					<div class="book-stats">
 						<span class="listened-time"><span class="stat-value">${book.totalHours}h</span> listened</span>
 						${
-							book.timeRemaining !== "0h"
+							timeRemaining
 								? `<span class="time-remaining"><span class="stat-value">${timeRemaining}</span> left</span>`
 								: ""
 						}
@@ -303,11 +308,25 @@ function renderCurrentlyReading(list) {
 	`;
 }
 
+function parseSessionDate(value) {
+	if (typeof value === "number") return new Date(value);
+	if (typeof value === "string") {
+		const ymd = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+		if (ymd) {
+			return new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
+		}
+		const parsed = new Date(value);
+		if (!Number.isNaN(parsed.getTime())) return parsed;
+	}
+	return null;
+}
+
 function renderRecentSessions(data) {
 	const sessions = (data.recentSessions || [])
 		.filter((s) => Math.round(s.timeListening / 60) > 0)
 		.slice(0, 8)
 		.map((session) => {
+			const parsed = parseSessionDate(session.date);
 			return {
 				title:
 					session.displayTitle || session.mediaMetadata?.title || "Unknown",
@@ -316,7 +335,7 @@ function renderRecentSessions(data) {
 					session.mediaMetadata?.authors?.[0]?.name ||
 					"Unknown",
 				duration: formatDuration(session.timeListening),
-				date: new Date(session.date).toLocaleDateString(),
+				date: parsed ? parsed.toLocaleDateString() : "Unknown",
 				device:
 					session.deviceInfo?.deviceName ||
 					session.deviceInfo?.clientName ||
@@ -400,7 +419,7 @@ function renderStats(data) {
 	const books = Object.values(data.items || {});
 
 	const { finished: finalBooksFinished, inProgress: finalBooksInProgress } =
-		countProgress(mediaProgress, books);
+		countProgress(mediaProgress, books, data.items || {});
 	const booksStarted = finalBooksFinished + finalBooksInProgress;
 	const completionRate =
 		booksStarted > 0
@@ -410,12 +429,7 @@ function renderStats(data) {
 	const { uniqueAuthors, uniqueSeries, uniqueGenres, publishers } =
 		collectTaxonomy(books);
 
-	const dailyStats = {};
-	for (const session of data.recentSessions || []) {
-		dailyStats[session.date] =
-			(dailyStats[session.date] || 0) + (session.timeListening || 0);
-	}
-	const dailyTimes = Object.values(dailyStats);
+	const dailyTimes = Object.values(data.days || {});
 	const bestDaySeconds = dailyTimes.length > 0 ? Math.max(...dailyTimes) : 0;
 	const bestDayTime = formatDuration(bestDaySeconds);
 	const todayTime = formatDuration(data.today || 0);
@@ -433,9 +447,13 @@ function renderStats(data) {
 	);
 
 	const finishedBooks = buildFinishedBooks(data, mediaProgress);
-	const currentlyReading =
+	const fromProgress =
 		mediaProgress.length > 0
 			? buildCurrentlyReadingFromProgress(data, mediaProgress)
+			: [];
+	const currentlyReading =
+		fromProgress.length > 0
+			? fromProgress
 			: buildCurrentlyReadingFromItems(books);
 	currentlyReadingBooks = currentlyReading;
 
@@ -573,10 +591,19 @@ function showBookDescription(readingItem) {
 	const bookId = readingItem.dataset.bookId;
 	if (!bookId) return;
 
-	clearTimeout(bookDescriptionTimeout);
-
 	const descriptionDiv = readingItem.querySelector(".book-description");
 	if (!descriptionDiv) return;
+
+	for (const other of document.querySelectorAll(".book-description.show")) {
+		if (other !== descriptionDiv) {
+			other.classList.remove("show");
+			other.style.display = "none";
+			other.replaceChildren();
+		}
+	}
+
+	clearTimeout(bookDescriptionFillTimeout);
+	clearTimeout(bookDescriptionClearTimeout);
 
 	ensureOverlay();
 	descriptionDiv.replaceChildren();
@@ -591,7 +618,7 @@ function showBookDescription(readingItem) {
 	descriptionDiv.style.display = "block";
 	descriptionDiv.classList.add("show");
 
-	bookDescriptionTimeout = setTimeout(() => {
+	bookDescriptionFillTimeout = setTimeout(() => {
 		const bookData = currentlyReadingBooks.find((b) => b.id === bookId);
 		descriptionDiv.replaceChildren();
 		if (bookData?.description) {
@@ -605,14 +632,14 @@ function showBookDescription(readingItem) {
 }
 
 function hideActiveBookDescription() {
-	clearTimeout(bookDescriptionTimeout);
 	const active = document.querySelector(".book-description.show");
 	if (!active) {
 		removeOverlay();
 		return;
 	}
 	active.classList.remove("show");
-	setTimeout(() => {
+	clearTimeout(bookDescriptionClearTimeout);
+	bookDescriptionClearTimeout = setTimeout(() => {
 		if (!active.classList.contains("show")) {
 			active.style.display = "none";
 			active.replaceChildren();
@@ -647,10 +674,14 @@ async function init() {
 
 	try {
 		const response = await fetch("/api/audiobookshelf/stats");
-		if (!response.ok) throw new Error("Failed to fetch stats");
-		const data = await response.json();
-		if (data.error) {
-			showError(container, data.error);
+		let data = null;
+		try {
+			data = await response.json();
+		} catch {
+			/* non-JSON body */
+		}
+		if (!response.ok || data?.error) {
+			showError(container, data?.error || "Failed to load audiobook stats");
 			return;
 		}
 		container.style.display = "block";

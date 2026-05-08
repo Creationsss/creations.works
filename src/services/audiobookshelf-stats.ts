@@ -146,6 +146,19 @@ class AudiobookshelfService extends CachedService<AudiobookshelfStats> {
 					})
 				: [];
 
+			const rawRecentSessions = listeningStatsData.recentSessions || [];
+			const recentSessions = Array.isArray(rawRecentSessions)
+				? rawRecentSessions.filter(
+						(s: { mediaType?: string }) =>
+							!s?.mediaType || s.mediaType === "book",
+					)
+				: [];
+
+			const days =
+				listeningStatsData.days && typeof listeningStatsData.days === "object"
+					? (listeningStatsData.days as Record<string, number>)
+					: {};
+
 			return {
 				totalTime: listeningStatsData.totalTime || 0,
 				totalItems: Object.keys(listeningStatsData.items || {}).length,
@@ -153,7 +166,8 @@ class AudiobookshelfService extends CachedService<AudiobookshelfStats> {
 				libraries: libraryDetails,
 				items: itemsWithCovers,
 				today: listeningStatsData.today || 0,
-				recentSessions: listeningStatsData.recentSessions || [],
+				days: days,
+				recentSessions: recentSessions,
 				mediaProgress: mediaProgress,
 				user: {
 					username: authorizeData.user?.username,
