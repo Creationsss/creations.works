@@ -17,8 +17,8 @@ interface LibraryDetail {
 interface AudiobookshelfUser {
 	username?: string;
 	isActive?: boolean;
-	lastSeen?: string;
-	createdAt?: string;
+	lastSeen?: number | null;
+	createdAt?: number;
 }
 
 interface AudiobookshelfStats {

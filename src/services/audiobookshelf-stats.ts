@@ -100,26 +100,51 @@ class AudiobookshelfService extends CachedService<AudiobookshelfStats> {
 
 					const transformedMetadata: Record<string, unknown> = {
 						...metadata,
+						duration: item.media?.duration ?? metadata.duration,
 					};
 
-					if (metadata.authorName) {
-						transformedMetadata.authors = [{ name: metadata.authorName }];
+					if (!Array.isArray(metadata.authors) && metadata.authorName) {
+						transformedMetadata.authors = String(metadata.authorName)
+							.split(",")
+							.map((name: string) => name.trim())
+							.filter((name: string) => name.length > 0)
+							.map((name: string) => ({ name }));
 					}
 
-					if (metadata.seriesName) {
-						transformedMetadata.series = [{ name: metadata.seriesName }];
+					if (
+						(!Array.isArray(metadata.series) || metadata.series.length === 0) &&
+						metadata.seriesName
+					) {
+						transformedMetadata.series = String(metadata.seriesName)
+							.split(",")
+							.map((entry: string) => entry.trim())
+							.filter((entry: string) => entry.length > 0)
+							.map((entry: string) => {
+								const match = entry.match(/^(.*?)\s+#([\d.]+)$/);
+								if (match?.[1] && match[2]) {
+									return { name: match[1].trim(), sequence: match[2] };
+								}
+								return { name: entry };
+							});
 					}
 
 					itemsWithCovers[item.id] = {
 						id: item.id,
 						timeListening: listeningStatsItem?.timeListening || 0,
 						mediaMetadata: transformedMetadata,
-						coverUrl: `${baseUrl}/api/items/${item.id}/cover`,
+						coverUrl: `/api/audiobookshelf/cover/${item.id}`,
 					};
 				}
 			}
 
-			const mediaProgress = authorizeData.user?.mediaProgress || [];
+			const rawMediaProgress = authorizeData.user?.mediaProgress || [];
+			const mediaProgress = Array.isArray(rawMediaProgress)
+				? rawMediaProgress.filter((p: { mediaItemType?: string }) => {
+						if (!p) return false;
+						if (p.mediaItemType && p.mediaItemType !== "book") return false;
+						return true;
+					})
+				: [];
 
 			return {
 				totalTime: listeningStatsData.totalTime || 0,

@@ -1,10 +1,8 @@
 import { echo } from "@atums/echo";
+import { AUDIOBOOK } from "#constants";
 import { audiobookshelf } from "#environment";
 import { normalizeUrl } from "#utils/url";
 import { CachedService } from "./base-cache";
-
-const POLL_INTERVAL = 30 * 1000;
-const STALE_THRESHOLD = 2 * 60 * 1000;
 
 class AudiobookshelfListeningService extends CachedService<AudiobookListeningData> {
 	protected getServiceName(): string {
@@ -12,7 +10,7 @@ class AudiobookshelfListeningService extends CachedService<AudiobookListeningDat
 	}
 
 	protected override getCacheInterval(): number {
-		return POLL_INTERVAL;
+		return AUDIOBOOK.LISTENING_POLL_INTERVAL_MS;
 	}
 
 	protected async fetchData(): Promise<AudiobookListeningData | null> {
@@ -40,17 +38,19 @@ class AudiobookshelfListeningService extends CachedService<AudiobookListeningDat
 				return { isListening: false, book: null };
 			}
 
-			const activeSession = sessions[0];
-
-			const updatedAt = activeSession.updatedAt || 0;
 			const now = Date.now();
-			if (now - updatedAt > STALE_THRESHOLD) {
+			const activeSession = sessions.find(
+				(s) =>
+					s?.mediaType === "book" &&
+					s?.libraryItemId &&
+					now - (s.updatedAt || 0) <= AUDIOBOOK.LISTENING_STALE_THRESHOLD_MS,
+			);
+
+			if (!activeSession) {
 				return { isListening: false, book: null };
 			}
 
-			const coverUrl = activeSession.libraryItemId
-				? `${baseUrl}/api/items/${activeSession.libraryItemId}/cover`
-				: null;
+			const coverUrl = `/api/audiobookshelf/cover/${activeSession.libraryItemId}`;
 
 			const currentTime = activeSession.currentTime || 0;
 			const duration = activeSession.duration || 0;
@@ -62,7 +62,7 @@ class AudiobookshelfListeningService extends CachedService<AudiobookListeningDat
 					id: activeSession.libraryItemId,
 					title: activeSession.displayTitle || "Unknown Title",
 					author: activeSession.displayAuthor || "Unknown Author",
-					cover: coverUrl || "",
+					cover: coverUrl,
 					progress,
 					currentTime,
 					duration,
